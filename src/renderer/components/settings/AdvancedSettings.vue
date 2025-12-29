@@ -15,6 +15,8 @@
                     max="1" 
                     step="0.05" 
                     v-model.number="settings.window.opacity" 
+                    @input="updateOpacity"
+                    @change="endPreview"
                 >
                 <span class="value">{{ Math.round(settings.window.opacity * 100) }}%</span>
             </div>
@@ -32,14 +34,15 @@
             </div>
         </div>
 
-        <!-- Clipboard (Placeholder) -->
+        <!-- Clipboard -->
         <div class="setting-group">
             <div class="setting-label-group">
                 <label class="setting-label">{{ t('settings.advanced.clipboard.label') }}</label>
+                <div class="setting-desc">{{ t('settings.advanced.clipboard.desc') }}</div>
             </div>
             <div class="control">
-                 <label class="switch disabled">
-                    <input type="checkbox" disabled>
+                 <label class="switch">
+                    <input type="checkbox" v-model="settings.clipboardEnabled">
                     <span class="slider round"></span>
                 </label>
             </div>
@@ -52,11 +55,18 @@
 import { inject } from 'vue';
 import type { Settings } from '@shared/types/settings';
 import { useI18n } from '../../composables/useI18n';
+import { IPC_CHANNELS } from '@shared/constants';
 
 const settings = inject<Settings>('settings')!;
 const { t } = useI18n();
 
-// updateWindowSetting removed - v-model mutates settings directly
+function updateOpacity() {
+    window.electron.send('window:style-update', { opacity: settings.window.opacity });
+}
+
+function endPreview() {
+    window.electron.send(IPC_CHANNELS.WINDOW_HIDE);
+}
 </script>
 
 <style scoped>

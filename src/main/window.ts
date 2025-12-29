@@ -2,6 +2,7 @@ import { BrowserWindow, screen } from 'electron';
 import * as path from 'path';
 import { logger } from './utils/logger';
 import { SettingsWindow } from './settings-window';
+import { getSettings } from './utils/config';
 
 export class WindowManager {
     private mainWindow: BrowserWindow | null = null;
@@ -40,7 +41,20 @@ export class WindowManager {
 
         // 窗口失去焦点时隐藏
         this.mainWindow.on('blur', () => {
-            if (!this.isSettingsOpen) {
+            const settings = getSettings();
+
+
+            // Double check validation: If settings window doesn't exist (loading counts as existing), isSettingsOpen should be false
+            // We use getWindow() to check existence, as isVisible() might be false during creation/loading phase
+            const hasSettingsWindow = this.settingsWindow && this.settingsWindow.getWindow();
+            if (this.isSettingsOpen && !hasSettingsWindow) {
+                logger.warn('[Window] isSettingsOpen was true but window does not exist. Auto-correcting to false.');
+                this.isSettingsOpen = false;
+            }
+
+            logger.debug(`[Window] Blur event. hideOnBlur: ${settings.hideOnBlur}, isSettingsOpen: ${this.isSettingsOpen}`);
+
+            if (settings.hideOnBlur && !this.isSettingsOpen) {
                 setTimeout(() => {
                     this.hide();
                 }, 100);
@@ -90,7 +104,7 @@ export class WindowManager {
         }
     }
 
-    applyWindowSettings(settings: any): void {
+    applyWindowSettings(settings: any, isPreview: boolean = false): void {
         if (!this.mainWindow) return;
 
         if (settings.opacity !== undefined) {
@@ -100,6 +114,11 @@ export class WindowManager {
             // Electron's setOpacity affects the whole window including text.
             // Let's assume user wants whole window opacity.
             this.mainWindow.setOpacity(settings.opacity);
+
+            // Show window inactive to preview opacity changes if triggered from settings AND isPreview is true
+            if (this.isSettingsOpen && !this.mainWindow.isVisible() && isPreview) {
+                this.mainWindow.showInactive();
+            }
         }
 
         // Width is handled by resize, but we might want to update the default width for next time
@@ -158,6 +177,7 @@ export class WindowManager {
     }
 
     openSettings(): void {
+        this.hide(); // Hide main search window
         if (!this.settingsWindow) {
             this.settingsWindow = new SettingsWindow();
         }

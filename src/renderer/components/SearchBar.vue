@@ -55,6 +55,7 @@ onMounted(() => {
   color: var(--text-secondary);
   cursor: pointer;
   transition: color 0.2s;
+  -webkit-app-region: no-drag;
 }
 
 .search-icon:hover {
@@ -68,6 +69,7 @@ onMounted(() => {
   outline: none;
   background: transparent;
   color: var(--text-primary);
+  -webkit-app-region: no-drag;
 }
 
 .search-input::placeholder {

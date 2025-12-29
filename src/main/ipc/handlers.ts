@@ -145,6 +145,11 @@ export function registerIpcHandlers(
         windowManager.setSize(width, height);
     });
 
+    // 实时样式更新 (用于预览)
+    ipcMain.on('window:style-update', (_event, style: any) => {
+        windowManager.applyWindowSettings(style, true);
+    });
+
     // 设置相关
     ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, () => {
         return getSettings();

@@ -21,6 +21,10 @@ export default {
                 label: '显示托盘图标',
                 desc: '在系统托盘显示图标'
             },
+            hideOnBlur: {
+                label: '失去焦点时隐藏',
+                desc: '当窗口失去焦点时自动隐藏'
+            },
             language: {
                 label: '语言'
             },
@@ -62,6 +66,12 @@ export default {
                 manage: {
                     label: '管理插件',
                     btn: '打开插件中心'
+                },
+                names: {
+                    appSearch: '应用搜索',
+                    calculator: '计算器',
+                    system: '系统命令',
+                    clipboard: '剪贴板历史'
                 }
             },
             localApp: {
@@ -86,7 +96,8 @@ export default {
                 comingSoon: '即将推出'
             },
             clipboard: {
-                label: '剪贴板历史'
+                label: '剪贴板历史',
+                desc: '记录并搜索剪贴板内容'
             }
         },
         about: {

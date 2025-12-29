@@ -22,8 +22,8 @@
             <div class="plugin-info">
                 <div class="plugin-icon">{{ plugin.icon || '🧩' }}</div>
                 <div>
-                    <h4>{{ plugin.name }}</h4>
-                    <p>{{ plugin.description }}</p>
+                    <h4>{{ getLocalizedName(plugin) }}</h4>
+                    <p>{{ getLocalizedDesc(plugin) }}</p>
                 </div>
             </div>
             <div class="plugin-actions">
@@ -45,6 +45,8 @@
 import { ref, onMounted } from 'vue';
 import { IPC_CHANNELS } from '@shared/constants';
 
+import { useI18n } from '../../composables/useI18n';
+
 interface PluginInfo {
     name: string;
     description: string;
@@ -54,6 +56,30 @@ interface PluginInfo {
 
 const activeTab = ref('installed');
 const plugins = ref<PluginInfo[]>([]);
+const { t } = useI18n();
+
+// Mapping for plugin names to translation keys
+const pluginNameMap: Record<string, string> = {
+    'app-search': 'settings.plugins.names.appSearch',
+    'calculator': 'settings.plugins.names.calculator',
+    'system': 'settings.plugins.names.system',
+    'Clipboard History': 'settings.plugins.names.clipboard'
+};
+
+function getLocalizedName(plugin: PluginInfo): string {
+    const key = pluginNameMap[plugin.name];
+    if (key) {
+        const translated = t(key);
+        // If translation returns key (fallback), show original name
+        return translated === key ? plugin.name : translated;
+    }
+    return plugin.name;
+}
+
+function getLocalizedDesc(plugin: PluginInfo): string {
+    // Optional: map descriptions too if needed, or just leave as is for now
+    return plugin.description; 
+}
 
 onMounted(async () => {
     try {

@@ -21,6 +21,10 @@ export default {
                 label: 'Show Tray Icon',
                 desc: 'Show icon in system tray'
             },
+            hideOnBlur: {
+                label: 'Hide on Blur',
+                desc: 'Hide window when focus is lost'
+            },
             language: {
                 label: 'Language'
             },
@@ -62,6 +66,12 @@ export default {
                 manage: {
                     label: 'Manage Plugins',
                     btn: 'Open Plugin Center'
+                },
+                names: {
+                    appSearch: 'App Search',
+                    calculator: 'Calculator',
+                    system: 'System Commands',
+                    clipboard: 'Clipboard History'
                 }
             },
             localApp: {
@@ -79,7 +89,8 @@ export default {
                 comingSoon: 'Coming Soon'
             },
             clipboard: {
-                label: 'Clipboard History'
+                label: 'Clipboard History',
+                desc: 'Record and search clipboard content'
             }
         },
         about: {

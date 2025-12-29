@@ -40,5 +40,6 @@ watch(() => props.selectedIndex, async (newIndex) => {
 .result-list {
   max-height: 400px;
   overflow-y: auto;
+  -webkit-app-region: no-drag;
 }
 </style>

@@ -31,6 +31,20 @@
             </div>
         </div>
 
+        <!-- Hide on Blur -->
+        <div class="setting-group">
+            <div class="setting-label-group">
+                <label class="setting-label">{{ t('settings.basic.hideOnBlur.label') }}</label>
+                <div class="setting-desc">{{ t('settings.basic.hideOnBlur.desc') }}</div>
+            </div>
+            <div class="control">
+                <label class="switch">
+                    <input type="checkbox" v-model="settings.hideOnBlur">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+
         <!-- Language -->
         <div class="setting-group">
              <div class="setting-label-group">

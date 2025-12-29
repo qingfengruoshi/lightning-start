@@ -6,6 +6,7 @@ export interface Settings {
     autoStart: boolean;
     showTray: boolean; // New
     hideOnBlur: boolean;
+    clipboardEnabled: boolean; // New
     maxResults: number;
     searchMode: 'fuzzy' | 'exact'; // New
     customPaths: string[];
@@ -32,6 +33,7 @@ export const defaultSettings: Settings = {
     autoStart: true,
     showTray: true,
     hideOnBlur: true,
+    clipboardEnabled: false,
     maxResults: 10,
     searchMode: 'fuzzy',
     customPaths: [],

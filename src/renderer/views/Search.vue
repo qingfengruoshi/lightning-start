@@ -181,6 +181,7 @@ window.electron.on('settings:updated', (newSettings: any) => {
   box-shadow: var(--shadow);
   overflow: hidden;
   backdrop-filter: blur(20px);
+  -webkit-app-region: drag;
 }
 
 .search-container {
