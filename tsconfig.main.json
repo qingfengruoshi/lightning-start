@@ -1,0 +1,18 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "rootDir": "src",
+        "outDir": "dist",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "noEmit": false,
+        "allowImportingTsExtensions": false
+    },
+    "include": [
+        "src/main/**/*",
+        "src/shared/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

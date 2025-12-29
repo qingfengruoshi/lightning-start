@@ -1,0 +1,33 @@
+:root {
+  /* 亮色主题 */
+  --bg-primary: rgba(255, 255, 255, 0.95);
+  --bg-secondary: rgba(248, 248, 248, 0.95);
+  --bg-hover: rgba(0, 0, 0, 0.05);
+  --bg-selected: rgba(64, 150, 255, 0.1);
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --accent-color: #4096ff;
+
+  /* 动画 */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 暗色主题 */
+    --bg-primary: rgba(30, 30, 30, 0.95);
+    --bg-secondary: rgba(40, 40, 40, 0.95);
+    --bg-hover: rgba(255, 255, 255, 0.05);
+    --bg-selected: rgba(64, 150, 255, 0.2);
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --text-muted: #888888;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --accent-color: #1890ff;
+  }
+}
