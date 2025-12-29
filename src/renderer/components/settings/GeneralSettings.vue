@@ -19,8 +19,8 @@
             <input 
                 type="text" 
                 v-model="hotkeyDisplay" 
-                @keydown.prevent="recordHotkey"
-                placeholder="点击录制"
+                @click="changeHotkey"
+                placeholder="点击切换"
                 class="hotkey-input"
                 readonly
             >
@@ -71,7 +71,9 @@ const settings = reactive<Settings>({
     language: 'zh-CN',
     autoStart: false,
     hideOnBlur: true,
+    showTray: true,
     maxResults: 10,
+    searchMode: 'fuzzy',
     customPaths: [],
     window: { width: 800, height: 600, opacity: 1, fontSize: 14 },
     plugins: {}
@@ -95,25 +97,16 @@ async function updateWindowSetting(key: string, value: any) {
     await window.electron.invoke(IPC_CHANNELS.SETTINGS_SET, 'window', newWindowSettings);
 }
 
-function recordHotkey(e: KeyboardEvent) {
-    const keys = [];
-    if (e.ctrlKey) keys.push('Ctrl');
-    if (e.metaKey) keys.push('Super'); 
-    if (e.altKey) keys.push('Alt');
-    if (e.shiftKey) keys.push('Shift');
+function changeHotkey() {
+    const options = ['Alt+Space', 'Alt+R'];
+    const currentIndex = options.indexOf(settings.hotkey);
+    // Cycle to next, or default to first if not found
+    const nextIndex = (currentIndex + 1) % options.length;
+    const nextHotkey = options[nextIndex];
 
-    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
-
-    let key = e.key.toUpperCase();
-    const keyMap: Record<string, string> = { ' ': 'Space' };
-    if (keyMap[e.key]) key = keyMap[e.key];
-
-    keys.push(key);
-    
-    const hotkeyStr = keys.join('+');
-    hotkeyDisplay.value = hotkeyStr;
-    settings.hotkey = hotkeyStr;
-    updateSetting('hotkey', hotkeyStr);
+    hotkeyDisplay.value = nextHotkey;
+    settings.hotkey = nextHotkey;
+    updateSetting('hotkey', nextHotkey);
 }
 </script>
 

@@ -66,7 +66,14 @@ export default {
             },
             localApp: {
                 label: '本地应用索引',
-                dropZone: '拖拽可执行文件到此处建立索引'
+                dropZone: '拖拽可执行文件或文件夹到此处建立索引',
+                add: '添加文件/文件夹',
+                empty: '暂无自定义路径，请拖拽文件或点击添加'
+            },
+            index: {
+                label: '重建索引',
+                desc: '手动重新扫描所有应用',
+                btn: '开始重建'
             }
         },
         advanced: {

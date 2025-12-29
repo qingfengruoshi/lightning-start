@@ -13,8 +13,8 @@
                 <input 
                     type="text" 
                     v-model="hotkeyDisplay" 
-                    @keydown.prevent="recordHotkey"
-                    :placeholder="t('settings.hotkey.activation.placeholder')"
+                    @click="changeHotkey"
+                    placeholder="点击切换"
                     class="hotkey-input"
                     readonly
                 >
@@ -49,25 +49,15 @@ watch(() => settings.hotkey, (newVal) => {
     if (newVal) hotkeyDisplay.value = newVal;
 }, { immediate: true });
 
-function recordHotkey(e: KeyboardEvent) {
-    const keys = [];
-    if (e.ctrlKey) keys.push('Ctrl');
-    if (e.metaKey) keys.push('Super'); 
-    if (e.altKey) keys.push('Alt');
-    if (e.shiftKey) keys.push('Shift');
+function changeHotkey() {
+    const options = ['Alt+Space', 'Alt+R'];
+    const currentIndex = options.indexOf(settings.hotkey);
+    // Cycle to next, or default to first if not found
+    const nextIndex = (currentIndex + 1) % options.length;
+    const nextHotkey = options[nextIndex];
 
-    if (['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) return;
-
-    let key = e.key.toUpperCase();
-    const keyMap: Record<string, string> = { ' ': 'Space' };
-    if (keyMap[e.key]) key = keyMap[e.key];
-
-    keys.push(key);
-    
-    const hotkeyStr = keys.join('+');
-    hotkeyDisplay.value = hotkeyStr;
-    settings.hotkey = hotkeyStr;
-    // updateSetting removed - Parent saves on button click
+    hotkeyDisplay.value = nextHotkey;
+    settings.hotkey = nextHotkey;
 }
 </script>
 

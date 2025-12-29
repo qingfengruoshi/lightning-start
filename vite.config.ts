@@ -11,7 +11,7 @@ export default defineConfig({
                 entry: resolve(__dirname, 'src/main/index.ts'),
                 vite: {
                     build: {
-                        outDir: 'dist/main',
+                        outDir: resolve(__dirname, 'dist/main'),
                         rollupOptions: {
                             external: ['electron'], // Ensure electron is external
                         },
@@ -31,7 +31,7 @@ export default defineConfig({
                 },
                 vite: {
                     build: {
-                        outDir: 'dist/preload',
+                        outDir: resolve(__dirname, 'dist/preload'),
                     },
                     resolve: {
                         alias: {

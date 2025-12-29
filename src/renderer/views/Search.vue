@@ -39,6 +39,7 @@ watch(searchQuery, (query) => {
 
 // 处理选择
 function handleSelect(index: number) {
+  console.log('[Search.vue] handleSelect called with index:', index);
   executeAction(index);
 }
 
@@ -142,8 +143,13 @@ const currentLocale = ref('zh-CN');
 function updateLocale(lang: string) {
     currentLocale.value = lang;
     const t = locales[lang] || locales['en'];
+    // Access default export structure: default.settings.search.placeholder
+    // Wait, locales[lang] IS the default export object if imported like `import zhCN from ...`.
+    // zhCN structure is { settings: { ... } }
     if (t && t.settings && t.settings.search && t.settings.search.placeholder) {
         placeholder.value = t.settings.search.placeholder;
+    } else {
+        console.warn('[Search.vue] Placeholder not found in locale', lang, t);
     }
 }
 

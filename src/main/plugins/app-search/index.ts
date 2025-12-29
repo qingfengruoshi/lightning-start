@@ -24,9 +24,9 @@ export class AppSearchPlugin implements Plugin {
         return query.length > 0;
     }
 
-    async search(query: string): Promise<SearchResult[]> {
-        logger.debug(`AppSearchPlugin: searching for "${query}"`);
-        const apps = this.appIndexer.search(query);
+    async search(query: string, options?: { searchMode?: 'fuzzy' | 'exact' }): Promise<SearchResult[]> {
+        logger.debug(`AppSearchPlugin: searching for "${query}" (mode: ${options?.searchMode})`);
+        const apps = this.appIndexer.search(query, options?.searchMode);
         logger.debug(`AppSearchPlugin: found ${apps.length} apps from indexer`);
 
         const results: SearchResult[] = [];
@@ -54,7 +54,7 @@ export class AppSearchPlugin implements Plugin {
 
     private async getAppIcon(app: AppInfo): Promise<string> {
         try {
-            if (app.type === 'exe') {
+            if (app.type === 'exe' || app.type === 'custom') {
                 return await this.iconExtractor.extractIcon(app.path);
             }
             // UWP 应用暂时返回空
@@ -78,12 +78,18 @@ export class AppSearchPlugin implements Plugin {
             incrementAppFrequency(appPath);
 
             // 启动应用
+            let error = '';
             if (appPath.startsWith('shell:AppsFolder')) {
                 // UWP 应用使用 shell 打开
-                await shell.openPath(appPath);
+                error = await shell.openPath(appPath);
             } else {
                 // 普通 exe 应用
-                await shell.openPath(appPath);
+                error = await shell.openPath(appPath);
+            }
+
+            if (error) {
+                logger.error(`Failed to launch app (openPath error): ${error}`);
+                throw new Error(error);
             }
 
             logger.info(`Launched app: ${appPath}`);

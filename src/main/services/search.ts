@@ -19,13 +19,10 @@ export class SearchService {
         }
     }
 
-    async search(query: string, maxResults: number = 10): Promise<SearchResult[]> {
+    async search(query: string, maxResults: number = 10, mode: 'fuzzy' | 'exact' = 'fuzzy'): Promise<SearchResult[]> {
         if (!query || query.trim() === '') {
             return [];
         }
-
-
-
 
         const results: SearchResult[] = [];
 
@@ -37,7 +34,7 @@ export class SearchService {
         // 并行搜索
         const promises = matchedPlugins.map(async (plugin) => {
             try {
-                return await plugin.search(query);
+                return await plugin.search(query, { searchMode: mode });
             } catch (error) {
                 logger.error(`Error in plugin ${plugin.name}:`, error);
                 return [];

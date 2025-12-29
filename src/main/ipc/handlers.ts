@@ -1,4 +1,4 @@
-import { ipcMain, clipboard, shell, nativeTheme, app } from 'electron';
+import { ipcMain, clipboard, shell, nativeTheme, app, dialog } from 'electron';
 import { WindowManager } from '../window';
 import { SearchService } from '../services/search';
 import { getSettings, setSetting } from '../utils/config';
@@ -8,18 +8,76 @@ import { IPC_CHANNELS } from '@shared/constants';
 import { AppSearchPlugin } from '../plugins/app-search';
 import { SystemPlugin } from '../plugins/system';
 import { logger } from '../utils/logger';
+import { AppIndexer } from '../services/app-indexer';
+import { exec } from 'child_process';
+import * as util from 'util';
+
+const execAsync = util.promisify(exec);
+
+async function getIconViaPowershell(path: string): Promise<string | null> {
+    const psScript = `
+    Add-Type -AssemblyName System.Drawing
+    $icon = [System.Drawing.Icon]::ExtractAssociatedIcon('${path}')
+    if ($icon) {
+        $bitmap = $icon.ToBitmap()
+        $stream = New-Object System.IO.MemoryStream
+        $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+        $bytes = $stream.ToArray()
+        $base64 = [Convert]::ToBase64String($bytes)
+        Write-Output "BASE64_START$base64"
+    }
+    `;
+
+    try {
+        const { stdout } = await execAsync(`powershell -NoProfile -Command "${psScript.replace(/"/g, '\\"')}"`);
+        const match = stdout.match(/BASE64_START(.+)/);
+        if (match && match[1]) {
+            return `data:image/png;base64,${match[1].trim()}`;
+        }
+    } catch (e) {
+        logger.error(`[Icon] PowerShell extraction failed for ${path}:`, e);
+    }
+    return null;
+}
 
 export function registerIpcHandlers(
     windowManager: WindowManager,
     searchService: SearchService,
     hotkeyService: HotkeyService,
-    trayService: TrayService
+    trayService: TrayService,
+    appIndexer: AppIndexer
 ): void {
+
+    ipcMain.handle('get-file-icon', async (_event, path: string) => {
+        try {
+            const icon = await app.getFileIcon(path);
+            const dataUrl = icon.toDataURL();
+
+            // Check if icon is "empty" or default (usually small size)
+            if (dataUrl.length < 1500) {
+                logger.warn(`[Icon] Built-in extraction yielded low quality icon (${dataUrl.length} chars) for ${path}. Trying PowerShell fallback...`);
+                const psIcon = await getIconViaPowershell(path);
+                if (psIcon) {
+                    logger.info(`[Icon] PowerShell fallback successful for ${path}`);
+                    return psIcon;
+                }
+            }
+            return dataUrl;
+        } catch (e) {
+            logger.error(`[Icon] Failed to get icon for ${path}:`, e);
+            // Fallback immediately on error
+            return await getIconViaPowershell(path);
+        }
+    });
+
+    ipcMain.on('renderer-log', (_event, ...args: any[]) => {
+        logger.info('[Renderer]', ...args);
+    });
     // 搜索查询
     ipcMain.handle(IPC_CHANNELS.SEARCH_QUERY, async (_event, query: string) => {
         try {
             const settings = getSettings();
-            const results = await searchService.search(query, settings.maxResults);
+            const results = await searchService.search(query, settings.maxResults, settings.searchMode);
             return results;
         } catch (error) {
             logger.error('Error handling search query:', error);
@@ -27,11 +85,13 @@ export function registerIpcHandlers(
         }
     });
 
-    // 执行操作
+
     ipcMain.handle('action:execute', async (_event, action: string, data: any) => {
+        logger.info(`[IPC] action:execute received: ${action}`, data);
         try {
             switch (action) {
                 case 'launch-app':
+                    logger.info(`[IPC] Launching app: ${data.path}`);
                     await AppSearchPlugin.launchApp(data.path);
                     windowManager.hide();
                     break;
@@ -197,10 +257,22 @@ export function registerIpcHandlers(
     });
 
     // 重建索引
-    ipcMain.handle(IPC_CHANNELS.INDEX_REBUILD, async () => {
-        // 重建索引逻辑
+    ipcMain.handle(IPC_CHANNELS.INDEX_REBUILD, async (_event, customPaths?: string[]) => {
         logger.info('Rebuilding index...');
+        const settings = getSettings();
+        await appIndexer.buildIndex(customPaths || settings.customPaths);
         return true;
+    });
+
+    // 打开文件夹对话框
+    ipcMain.handle('dialog:open-directory', async () => {
+        const result = await dialog.showOpenDialog({
+            properties: ['openDirectory'],
+        });
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+        return result.filePaths[0];
     });
 
     logger.info('IPC handlers registered');

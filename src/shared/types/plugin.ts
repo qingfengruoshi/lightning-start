@@ -24,7 +24,7 @@ export interface Plugin {
     match(query: string): boolean;
 
     // 执行搜索
-    search(query: string): Promise<SearchResult[]>;
+    search(query: string, options?: { searchMode?: 'fuzzy' | 'exact' }): Promise<SearchResult[]>;
 
     // 初始化插件
     onLoad?(): void | Promise<void>;

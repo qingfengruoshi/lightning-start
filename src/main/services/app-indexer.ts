@@ -19,7 +19,7 @@ export class AppIndexer {
         this.iconCacheDir = path.join(app.getPath('userData'), 'icon-cache');
     }
 
-    async buildIndex(): Promise<void> {
+    async buildIndex(customPaths: string[] = []): Promise<void> {
         if (this.indexing) {
             logger.warn('Indexing already in progress');
             return;
@@ -46,21 +46,72 @@ export class AppIndexer {
             const uwpApps = await this.scanUWPApps();
             apps.push(...uwpApps);
 
+            // 4. 扫描自定义路径
+            if (customPaths && customPaths.length > 0) {
+                const customApps = await this.scanCustomPaths(customPaths);
+                apps.push(...customApps);
+            }
+
             // 去重并添加频率信息
             this.apps = this.deduplicateApps(apps);
 
             logger.info(`Indexed ${this.apps.length} applications`);
-
-            // 调试：输出前10个应用的名称和拼音
-            logger.debug('Sample apps (first 10):');
-            this.apps.slice(0, 10).forEach(app => {
-                logger.debug(`  ${app.name} -> pinyin: ${app.pinyin}`);
-            });
         } catch (error) {
             logger.error('Error building index:', error);
         } finally {
             this.indexing = false;
         }
+    }
+
+    private async scanCustomPaths(paths: string[]): Promise<AppInfo[]> {
+        const apps: AppInfo[] = [];
+        for (const p of paths) {
+            try {
+                // Check if file or directory
+                const stats = await fs.stat(p);
+                if (stats.isDirectory()) {
+                    logger.debug(`Scanning custom directory: ${p}`);
+                    const found = await this.recursiveScan(p);
+                    apps.push(...found);
+                } else if (stats.isFile()) {
+                    const ext = path.extname(p).toLowerCase();
+                    if (ext === '.exe' || ext === '.lnk') {
+                        logger.debug(`Adding custom file: ${p}`);
+                        const name = path.basename(p, ext);
+                        apps.push(this.createAppInfo(name, p, 'custom'));
+                    }
+                }
+            } catch (error) {
+                logger.error(`Error scanning custom path ${p}:`, error);
+            }
+        }
+        return apps;
+    }
+
+    private async recursiveScan(dir: string, depth = 0): Promise<AppInfo[]> {
+        if (depth > 5) return []; // Limit depth
+        const results: AppInfo[] = [];
+        try {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    // Skip hidden folders or node_modules etc if needed
+                    if (!entry.name.startsWith('.')) {
+                        results.push(...await this.recursiveScan(fullPath, depth + 1));
+                    }
+                } else if (entry.isFile()) {
+                    const ext = path.extname(entry.name).toLowerCase();
+                    if (ext === '.exe' || ext === '.lnk') {
+                        const name = path.basename(entry.name, ext);
+                        results.push(this.createAppInfo(name, fullPath, 'custom'));
+                    }
+                }
+            }
+        } catch (e) {
+            // Ignore access errors
+        }
+        return results;
     }
 
     private async scanStartMenu(): Promise<AppInfo[]> {
@@ -248,13 +299,37 @@ ForEach-Object {
             const key = app.path.toLowerCase();
             if (!seen.has(key)) {
                 seen.set(key, app);
+            } else {
+                const existingApp = seen.get(key)!;
+                if (this.isBetterName(app.name, existingApp.name)) {
+                    logger.debug(`Replacing app name "${existingApp.name}" with "${app.name}" for path: ${app.path}`);
+                    seen.set(key, app);
+                }
             }
         }
 
         return Array.from(seen.values());
     }
 
-    search(query: string): AppInfo[] {
+    private isBetterName(newName: string, oldName: string): boolean {
+        const penaltyKeywords = ['uninstall', '卸载', 'remove', '移除', 'delete', '删除', 'helper', 'assistant', 'configuration', '配置', '设置'];
+
+        const newHasPenalty = penaltyKeywords.some(kw => newName.toLowerCase().includes(kw));
+        const oldHasPenalty = penaltyKeywords.some(kw => oldName.toLowerCase().includes(kw));
+
+        // 1. 优先选择不含惩罚关键词的名称
+        if (!newHasPenalty && oldHasPenalty) return true;
+        if (newHasPenalty && !oldHasPenalty) return false;
+
+        // 2. 如果情况相同，优先选择更短的名称
+        if (newName.length < oldName.length) return true;
+        if (newName.length > oldName.length) return false;
+
+        // 3. 长度也相同，认为不是更好的（保持主要/第一个发现的）
+        return false;
+    }
+
+    search(query: string, mode: 'fuzzy' | 'exact' = 'fuzzy'): AppInfo[] {
         if (!query) return [];
 
         logger.debug(`Searching for: "${query}" in ${this.apps.length} apps`);
@@ -279,8 +354,8 @@ ForEach-Object {
                     return true;
                 }
 
-                // 拼音匹配
-                if (app.pinyin && app.pinyin.includes(queryPinyin)) {
+                // 拼音匹配 (仅模糊模式)
+                if (mode === 'fuzzy' && app.pinyin && app.pinyin.includes(queryPinyin)) {
                     logger.debug(`  ✓ Pinyin match: ${app.name} (pinyin: ${app.pinyin})`);
                     return true;
                 }

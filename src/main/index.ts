@@ -1,4 +1,4 @@
-import 'tsconfig-paths/register';
+
 import { app, BrowserWindow } from 'electron';
 import { WindowManager } from './window';
 import { HotkeyService } from './services/hotkey';
@@ -54,7 +54,7 @@ app.whenReady().then(async () => {
     await searchService.initializePlugins();
 
     // 注册 IPC 处理器
-    registerIpcHandlers(windowManager, searchService, hotkeyService, trayService);
+    registerIpcHandlers(windowManager, searchService, hotkeyService, trayService, appIndexer);
 
     // 获取设置
     const settings = getSettings();
