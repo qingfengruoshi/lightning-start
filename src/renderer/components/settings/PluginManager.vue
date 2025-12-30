@@ -26,8 +26,13 @@
         <div v-for="plugin in plugins" :key="plugin.name" class="plugin-card">
             <div class="plugin-info">
                 <div class="plugin-icon">
-                    <img v-if="plugin.icon && isIconPath(plugin.icon)" :src="plugin.icon" alt="icon" />
-                    <span v-else>{{ plugin.icon || '🧩' }}</span>
+                    <img 
+                        v-if="plugin.icon && isIconPath(plugin.icon) && !failedIcons.has(plugin.id || plugin.name)" 
+                        :src="plugin.icon" 
+                        alt="icon"
+                        @error="handleIconError(plugin.id || plugin.name)" 
+                    />
+                    <span v-else>{{ !isIconPath(plugin.icon || '') && plugin.icon ? plugin.icon : '🧩' }}</span>
                 </div>
                 <div>
                     <h4>{{ getLocalizedName(plugin) }}</h4>
@@ -62,8 +67,13 @@
             <div class="plugin-info">
                  <!-- Use remote icon if available, else letter -->
                 <div class="plugin-icon">
-                    <img v-if="plugin.icon && isIconPath(plugin.icon)" :src="plugin.icon" alt="icon" />
-                    <span v-else>{{ plugin.icon || '📦' }}</span>
+                    <img 
+                        v-if="plugin.icon && isIconPath(plugin.icon) && !failedIcons.has(plugin.id)" 
+                        :src="plugin.icon" 
+                        alt="icon"
+                        @error="handleIconError(plugin.id)"
+                    />
+                    <span v-else>{{ !isIconPath(plugin.icon || '') && plugin.icon ? plugin.icon : '🧩' }}</span>
                 </div>
                 <div>
                     <h4>{{ plugin.name }} <span class="version">v{{ plugin.version }}</span></h4>
@@ -209,6 +219,14 @@ function isInstalled(pluginId: string): boolean {
 function isIconPath(icon: string): boolean {
     if (!icon) return false;
     return icon.includes('/') || icon.includes('\\') || icon.startsWith('http') || icon.startsWith('file:');
+}
+
+const failedIcons = ref(new Set<string>());
+
+function handleIconError(pluginId: string) {
+    if (pluginId) {
+        failedIcons.value.add(pluginId);
+    }
 }
 
 onMounted(async () => {
