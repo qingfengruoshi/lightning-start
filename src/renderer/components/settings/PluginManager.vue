@@ -25,7 +25,10 @@
     <div v-if="activeTab === 'installed'" class="plugin-list">
         <div v-for="plugin in plugins" :key="plugin.name" class="plugin-card">
             <div class="plugin-info">
-                <div class="plugin-icon">{{ plugin.icon || '🧩' }}</div>
+                <div class="plugin-icon">
+                    <img v-if="plugin.icon && isIconPath(plugin.icon)" :src="plugin.icon" alt="icon" />
+                    <span v-else>{{ plugin.icon || '🧩' }}</span>
+                </div>
                 <div>
                     <h4>{{ getLocalizedName(plugin) }}</h4>
                     <p>{{ getLocalizedDesc(plugin) }}</p>
@@ -58,7 +61,10 @@
         <div v-else v-for="plugin in marketPlugins" :key="plugin.id" class="plugin-card market-card">
             <div class="plugin-info">
                  <!-- Use remote icon if available, else letter -->
-                <div class="plugin-icon">{{ plugin.icon || '📦' }}</div>
+                <div class="plugin-icon">
+                    <img v-if="plugin.icon && isIconPath(plugin.icon)" :src="plugin.icon" alt="icon" />
+                    <span v-else>{{ plugin.icon || '📦' }}</span>
+                </div>
                 <div>
                     <h4>{{ plugin.name }} <span class="version">v{{ plugin.version }}</span></h4>
                     <p>{{ plugin.description }}</p>
@@ -198,6 +204,11 @@ function isInstalled(pluginId: string): boolean {
         console.log(`[Market] Match found for ${pluginId}`);
     }
     return installed;
+}
+
+function isIconPath(icon: string): boolean {
+    if (!icon) return false;
+    return icon.includes('/') || icon.includes('\\') || icon.startsWith('http') || icon.startsWith('file:');
 }
 
 onMounted(async () => {
@@ -452,6 +463,14 @@ Let's use var(--bg-secondary) for cards to make them distinct blocks.
     justify-content: center;
     background: var(--bg-secondary);
     border-radius: 12px;
+    overflow: hidden;
+}
+
+.plugin-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 6px;
 }
 
 h4 {
