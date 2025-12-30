@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeTheme } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { WindowManager } from './window';
 import { HotkeyService } from './services/hotkey';
 import { AppIndexer } from './services/app-indexer';
@@ -16,6 +16,11 @@ import { ClipboardPlugin } from './plugins/clipboard';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getSettings } from './utils/config';
 import { logger, LogLevel } from './utils/logger';
+
+import { registerAppProtocol, registerPrivilegedSchemes } from './services/protocol-handler';
+
+// 注册特权协议（必须在 app ready 之前）
+registerPrivilegedSchemes();
 
 // 设置日志级别
 if (!app.isPackaged) {
@@ -37,6 +42,9 @@ let pluginDataService: PluginDataService;
 // 应用就绪
 app.whenReady().then(async () => {
     logger.info('Application is ready');
+
+    // 注册应用协议
+    registerAppProtocol();
 
     // 创建窗口管理器
     windowManager = new WindowManager();

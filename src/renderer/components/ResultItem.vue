@@ -2,11 +2,12 @@
   <div class="result-item" :class="{ selected }">
     <div class="result-icon">
       <img 
-        v-if="result.icon && !imageError" 
+        v-if="isUrl(result.icon) && !imageError" 
         :src="result.icon" 
         alt="" 
         @error="handleImageError"
       />
+      <span v-else-if="result.icon" class="emoji-icon">{{ result.icon }}</span>
       <span v-else class="emoji-icon">📄</span>
     </div>
     <div class="result-content">
@@ -26,6 +27,14 @@ const props = defineProps<{
 }>();
 
 const imageError = ref(false);
+
+const isUrl = (icon: string | undefined): boolean => {
+    if (!icon) return false;
+    return icon.startsWith('http') || 
+           icon.startsWith('antigravity-file:') || 
+           icon.startsWith('data:') ||
+           icon.startsWith('file:'); // Should be rare now
+};
 
 // Reset error state when icon changes
 watch(() => props.result.icon, () => {
@@ -63,6 +72,7 @@ function handleImageError() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: 32px; /* Set base font size for emoji */
 }
 
 .result-icon img {
@@ -72,7 +82,8 @@ function handleImageError() {
 }
 
 .emoji-icon {
-  font-size: 28px;
+  /* Inherits font-size from parent result-icon */
+  line-height: 1;
 }
 
 .result-content {

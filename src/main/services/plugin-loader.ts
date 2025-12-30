@@ -29,6 +29,12 @@ export interface ExternalPluginModule {
     onUnload?: (context?: PluginContext) => void;
 }
 
+import { pathToFileURL } from 'url';
+
+function toProtocolUrl(filePath: string): string {
+    return pathToFileURL(filePath).toString().replace('file:', 'antigravity-file:');
+}
+
 // Adapter to adapt External Plugin to Internal Plugin Interface
 class ExternalPluginAdapter implements Plugin {
     // ... (existing properties)
@@ -56,7 +62,14 @@ class ExternalPluginAdapter implements Plugin {
         this.description = config.description || 'External Plugin';
         // Resolve icon path to absolute if exists
         if (config.icon) {
-            this.icon = path.join(basePath, config.icon);
+            const iconPath = path.join(basePath, config.icon);
+            if (fs.existsSync(iconPath)) {
+                // Convert to protocol URL
+                this.icon = toProtocolUrl(iconPath);
+            } else {
+                // Treat as text/emoji
+                this.icon = config.icon;
+            }
         }
     }
 
@@ -74,7 +87,7 @@ class ExternalPluginAdapter implements Plugin {
         return false;
     }
 
-    async search(query: string, options?: { searchMode?: 'fuzzy' | 'exact' }): Promise<SearchResult[]> {
+    async search(query: string): Promise<SearchResult[]> {
         // ... (existing search logic setup)
         let cleanQuery = query;
         let triggered = false;
@@ -93,20 +106,44 @@ class ExternalPluginAdapter implements Plugin {
             const rawResults = await this.module.search(cleanQuery, this.getContext());
 
             // Adapt raw JS objects to SearchResult
-            return rawResults.map(r => ({
-                id: r.id || `${this.name}-${Math.random().toString(36).substr(2, 9)}`,
-                title: r.title || 'No Title',
-                subtitle: r.subtitle,
-                icon: r.icon ? (path.isAbsolute(r.icon) ? r.icon : path.join(this.basePath, r.icon)) : this.icon,
-                type: 'plugin',
-                action: 'plugin-execute',
-                data: {
-                    pluginName: this.name,
-                    payload: r.data || r // Pass original data or full object
-                },
-                score: r.score ?? (triggered ? 1000 : 0), // High score if triggered explicitly
-                frequency: 0
-            }));
+            return rawResults.map(r => {
+                let iconUrl = this.icon;
+                if (r.icon) {
+                    if (r.icon.startsWith('http') || r.icon.startsWith('data:')) {
+                        iconUrl = r.icon;
+                    } else {
+                        // Check absolute path or resolve relative
+                        let potentialPath: string;
+                        if (path.isAbsolute(r.icon)) {
+                            potentialPath = r.icon;
+                        } else {
+                            potentialPath = path.join(this.basePath, r.icon);
+                        }
+
+                        // Check existence to distinguish files from text/emojis
+                        if (fs.existsSync(potentialPath)) {
+                            iconUrl = toProtocolUrl(potentialPath);
+                        } else {
+                            iconUrl = r.icon;
+                        }
+                    }
+                }
+
+                return {
+                    id: r.id || `${this.name}-${Math.random().toString(36).substr(2, 9)}`,
+                    title: r.title || 'No Title',
+                    subtitle: r.subtitle,
+                    icon: iconUrl,
+                    type: 'plugin',
+                    action: 'plugin-execute',
+                    data: {
+                        pluginName: this.name,
+                        payload: r.data || r // Pass original data or full object
+                    },
+                    score: r.score ?? (triggered ? 1000 : 0), // High score if triggered explicitly
+                    frequency: 0
+                };
+            });
         } catch (e) {
             logger.error(`[PluginAdapter] Error in ${this.name}:`, e);
             return [];

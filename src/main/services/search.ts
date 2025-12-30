@@ -6,8 +6,8 @@ export class SearchService {
     private plugins: Plugin[] = [];
     private pluginLoader: PluginLoader;
 
-    constructor(pluginLoader?: PluginLoader) {
-        this.pluginLoader = pluginLoader || new PluginLoader();
+    constructor(pluginLoader: PluginLoader) {
+        this.pluginLoader = pluginLoader;
     }
 
     registerPlugin(plugin: Plugin): void {
