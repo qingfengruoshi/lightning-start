@@ -1,57 +1,25 @@
-# Lightning Start 快速启动器 - 开发完成指南
+# Lightning Start 快速启动器
 
-## ✅ 构建成功！
-
-所有代码已成功编译：
-- ✅ 主进程构建完成 (`dist/main/`)
-- ✅ 预加载脚本构建完成 (`dist/preload/`)
-- ✅ 所有 TypeScript 错误已修复
+**Lightning Start** 是一个现代、可扩展的效率启动器，深受 Rubick 和 uTools 的启发。它基于 Electron 和 Vue 3 构建，旨在提供快速、美观且高度可定制的体验。
 
 ---
 
-## 🚀 如何运行
+## 🚀 启动应用
 
-### 方法 1：停止占用端口的进程
-
-当前 Vite 开发服务器默认端口 5173 被占用，你需要：
-
-1. **找到并停止占用 5173 端口的进程**
-   ```powershell
-   # 查找占用端口的进程
-   netstat -ano | findstr :5173
-   
-   # 停止进程 (替换 PID)
-   taskkill /PID <进程ID> /F
-   ```
-
-2. **然后运行开发服务器**
-   ```bash
-   npm run dev
-   ```
-
-### 方法 2：修改端口配置
-
-编辑 `vite.config.ts`，指定不同的端口：
-
-```typescript
-server: {
-  port: 5175,  // 改为未被占用的端口
-},
+开发模式启动：
+```bash
+npm run dev
 ```
 
-然后修改 `package.json` 中的 `dev:electron`:
-```json
-"dev:electron": "wait-on http://localhost:5175 && electron ."
+生产环境构建：
+```bash
+npm run build
+npm run dist
 ```
 
 ---
 
 ## 🎮 使用说明
-
-### 启动应用
-```bash
-npm run dev
-```
 
 ### 默认快捷键
 - `Alt+Space` - 打开/关闭启动器
@@ -59,110 +27,68 @@ npm run dev
 - `Enter` - 执行选中的项目
 - `Esc` - 隐藏窗口
 
-### 功能测试
-
-应用启动后，你可以测试：
-
-1. **应用搜索**
-   - 输入应用名称，如 "chrome"、"vscode"
-   - 支持中文拼音搜索
-
-2. **计算器**
-   - 输入数学表达式，如 "1+2*3"
-   - 支持 √ 和 ^ 运算
-
-3. **系统命令**
-   - 输入 "shutdown"、"restart"、"lock" 等
+### 核心功能
+*   **应用搜索**: 秒级搜索本地已安装的应用，支持中文拼音。
+*   **系统命令**: 快速执行关机、重启、锁屏等系统操作。
+*   **计算器**: 直接在搜索框进行数学计算。
+*   **剪贴板历史**: 记录并快速粘贴历史剪贴板内容。
+*   **插件扩展**: 支持安装第三方插件以扩展功能。
 
 ---
 
 ## 📁 项目结构
 
 ```
-**Lightning Start** is a modern, extensible productivity launcher inspired by Rubick and uTools. It is built with Electron and Vue 3, designed to be fast, beautiful, and highly customizable.
+Lightning Start
 ├── src/
-│   ├── main/           # 主进程 (已构建到 dist/main/)
-│   ├── preload/        # 预加载脚本 (已构建到 dist/preload/)
-│   ├── renderer/       # 渲染进程 (Vue 3)
-│   └── shared/         # 共享类型定义
-├── dist/              # 构建输出
-├── package.json
-└── tsconfig.*.json    # TypeScript 配置
+│   ├── main/           # 主进程 (Electron Backend)
+│   │   ├── services/   # 核心服务 (搜索, 插件, 数据库等)
+│   │   ├── ipc/        # IPC 通信处理
+│   │   └── plugins/    # 内置核心插件
+│   ├── renderer/       # 渲染进程 (Vue 3 Frontend)
+│   │   ├── components/ # UI 组件
+│   │   ├── views/      # 页面视图 (搜索框, 设置页)
+│   │   └── styles/     # 全局样式与变量
+│   ├── preload/        # 预加载脚本 (安全桥接)
+│   └── shared/         # 前后端共享类型定义
+├── docs/               # 项目文档
+├── dist/               # 构建输出目录
+└── package.json
 ```
 
 ---
 
-## 🔧 已解决的问题
+## 📚 开发文档
 
-1. ✅ TypeScript `moduleResolution: "bundler"` 与 `module: "CommonJS"` 不兼容
-   - **解决**: 在 `tsconfig.main.json` 和 `tsconfig.preload.json` 中添加 `"moduleResolution": "node"`
+本项目包含详细的开发与架构文档，位于 `docs/` 目录下：
 
-2. ✅ 未使用的变量和导入警告
-   - **解决**: 移除未使用的导入，为未使用的参数添加 `_` 前缀
-
-3. ✅ 所有编译错误已修复
-
----
-
-## ⚠️ 当前状态
-
-- **Vite 开发服务器**: 准备就绪，但端口被占用
-- **主进程**: 已构建成功
-- **预加载脚本**: 已构建成功
-- **需要**: 解决端口冲突后即可完整运行
+*   **[插件开发指南](docs/PLUGIN_DEVELOPMENT.md)**: 了解如何为 Lightning Start 开发插件。
+*   **[架构概览](ARCHITECTURE.md)**: 项目整体架构设计说明。
+*   **[技术总结](docs/TECHNICAL_SUMMARY.md)**: 技术栈与核心实现细节。
+*   **[数据库设计](docs/DATABASE_DESIGN.md)**: 本地数据库结构说明。
 
 ---
 
-## 📦 生产打包
+## 👥 贡献者
 
-当开发测试完成后，可以打包应用：
+特别感谢以下贡献者对本项目的支持：
 
-```bash
-# 构建所有部分
-npm run build
+*   **困困**
 
-# 打包为可执行文件
-npm run dist
-```
+## ❤️ 致谢
 
-打包后的文件将在 `release/` 目录中。
+本项目构建于以下优秀的开源技术之上：
 
----
-
-## 🎯 核心功能清单
-
-### 已实现 ✅
-- [x] 窗口管理 (无边框、透明、置顶)
-- [x] 全局快捷键 (Alt+Space)
-- [x] 应用索引和搜索
-- [x] 图标提取和缓存
-- [x] 拼音搜索支持
-- [x] 计算器插件
-- [x] 系统命令插件
-- [x] 键盘导航 (↑↓ Enter Esc)
-- [x] 失焦自动隐藏
-- [x] 使用频率统计
-- [x] 数据持久化
-- [x] Vue 3 UI 组件
-- [x] 亮色/暗色主题支持
-- [x] 剪贴板历史支持
-- [x] 窗口透明度调节
-
-### 可扩展功能 🔮
-- [ ] 文件搜索插件
-- [ ] 网络搜索插件  
-- [ ] 命令行工具
-- [ ] 插件商店
-- [ ] 云同步设置
+*   **Electron**: 跨平台桌面应用开发框架
+*   **Vue 3**: 渐进式 JavaScript 框架
+*   **Vite**: 下一代前端构建工具
+*   **pinyin-pro**: 专业的 JS 汉字拼音转换库 (实现拼音搜索)
+*   **electron-store**: 简单的数据持久化存储方案
 
 ---
 
 ## 💡 提示
 
-1. **首次运行**: 应用索引需要一些时间，请耐心等待
-2. **图标提取**: 图标会在后台异步提取，不会阻塞搜索
-3. **开发者工具**: 开发模式会自动打开 DevTools
-4. **日志**: 查看控制台了解应用运行状态
-
----
-
+1. **首次运行**: 应用索引需要一些时间，请耐心等待。
+2. **图标提取**: 图标会在后台异步提取，不会阻塞搜索。
+3. **日志**: 开发模式下可查看控制台了解应用运行状态。

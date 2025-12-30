@@ -22,7 +22,7 @@ export interface MarketPlugin {
 }
 
 export class PluginMarketService {
-    private registryUrl = 'https://raw.githubusercontent.com/lightning-start/registry/main/plugins.json';
+    private registryUrl = 'https://github.com/qingfengruoshi/lightning_start_registry.git';
     private pluginLoader: PluginLoader;
 
     constructor(pluginLoader: PluginLoader) {
