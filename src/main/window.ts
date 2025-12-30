@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, app } from 'electron';
 import * as path from 'path';
 import { logger } from './utils/logger';
 import { SettingsWindow } from './settings-window';
@@ -8,6 +8,7 @@ export class WindowManager {
     private mainWindow: BrowserWindow | null = null;
     private settingsWindow: SettingsWindow | null = null;
     private isSettingsOpen = false;
+    private lastShowTime = 0;
 
     createWindow(): BrowserWindow {
         const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -32,7 +33,7 @@ export class WindowManager {
         });
 
         // 加载页面
-        if (!require('electron').app.isPackaged) {
+        if (!app.isPackaged) {
             this.mainWindow.loadURL('http://localhost:5173');
             this.mainWindow.webContents.openDevTools({ mode: 'detach' });
         } else {
@@ -43,6 +44,11 @@ export class WindowManager {
         this.mainWindow.on('blur', () => {
             const settings = getSettings();
 
+            // Ignore blur if it happens too quickly after show (prevent blinking/auto-close on startup)
+            if (Date.now() - this.lastShowTime < 300) {
+                logger.info('[Window] Blur ignored (within grace period)');
+                return;
+            }
 
             // Double check validation: If settings window doesn't exist (loading counts as existing), isSettingsOpen should be false
             // We use getWindow() to check existence, as isVisible() might be false during creation/loading phase
@@ -52,12 +58,18 @@ export class WindowManager {
                 this.isSettingsOpen = false;
             }
 
-            logger.debug(`[Window] Blur event. hideOnBlur: ${settings.hideOnBlur}, isSettingsOpen: ${this.isSettingsOpen}`);
+            // Check if settings window is actually visible (not minimized)
+            const isSettingsVisible = this.settingsWindow && this.settingsWindow.isVisible();
 
-            if (settings.hideOnBlur && !this.isSettingsOpen) {
+            logger.debug(`[Window] Blur event. hideOnBlur: ${settings.hideOnBlur}, isSettingsVisible: ${isSettingsVisible}`);
+
+            if (settings.hideOnBlur && !isSettingsVisible) {
                 setTimeout(() => {
                     this.hide();
+                    logger.info('[Window] Hiding window due to blur.');
                 }, 100);
+            } else {
+                logger.info('[Window] Not hiding (hideOnBlur false or Settings visible).');
             }
         });
 
@@ -107,6 +119,8 @@ export class WindowManager {
     applyWindowSettings(settings: any, isPreview: boolean = false): void {
         if (!this.mainWindow) return;
 
+        const isSettingsVisible = this.settingsWindow && this.settingsWindow.isVisible();
+
         if (settings.opacity !== undefined) {
             // Check if it's Windows, setOpacity might behave differently or need separate handling
             // But usually this.mainWindow.setOpacity(settings.opacity) works
@@ -116,7 +130,7 @@ export class WindowManager {
             this.mainWindow.setOpacity(settings.opacity);
 
             // Show window inactive to preview opacity changes if triggered from settings AND isPreview is true
-            if (this.isSettingsOpen && !this.mainWindow.isVisible() && isPreview) {
+            if (isSettingsVisible && !this.mainWindow.isVisible() && isPreview) {
                 this.mainWindow.showInactive();
             }
         }
@@ -135,10 +149,20 @@ export class WindowManager {
         if (settings.fontSize !== undefined) {
             this.mainWindow.webContents.send('window:style-update', { fontSize: settings.fontSize });
         }
+
+        if (settings.gridGap !== undefined) {
+            this.mainWindow.webContents.send('window:style-update', { gridGap: settings.gridGap });
+
+            // Preview logic: Show window if hidden to see changes
+            if (isSettingsVisible && !this.mainWindow.isVisible() && isPreview) {
+                this.mainWindow.showInactive();
+            }
+        }
     }
 
     show(): void {
         if (this.mainWindow) {
+            this.lastShowTime = Date.now();
             this.mainWindow.show();
             this.mainWindow.focus();
             this.mainWindow.webContents.send('window:show');

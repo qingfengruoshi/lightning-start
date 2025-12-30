@@ -35,6 +35,12 @@ export default {
                     light: '浅色',
                     auto: '跟随系统'
                 }
+            },
+            pluginPath: {
+                label: '插件安装目录',
+                desc: '修改插件存放位置（需重启生效）',
+                btn: '浏览...',
+                default: '默认位置'
             }
         },
         hotkey: {
@@ -72,6 +78,12 @@ export default {
                     calculator: '计算器',
                     system: '系统命令',
                     clipboard: '剪贴板历史'
+                },
+                descriptions: {
+                    appSearch: '搜索本地安装的应用程序',
+                    calculator: '内置简易计算器',
+                    system: '提供系统级命令操作',
+                    clipboard: '记录并搜索剪贴板历史'
                 }
             },
             localApp: {
@@ -91,6 +103,9 @@ export default {
             opacity: {
                 label: '窗口透明度'
             },
+            gridGap: {
+                label: '历史记录间距'
+            },
             superPanel: {
                 label: '超级面板',
                 comingSoon: '即将推出'
@@ -106,7 +121,8 @@ export default {
             checkUpdate: '检查更新',
             author: '作者',
             license: '许可证',
-            github: 'GitHub 仓库'
+            github: 'GitHub 仓库',
+            visit: '点击进入'
         }
     }
 }

@@ -57,8 +57,17 @@ export function useSearch() {
 
         try {
             // Strip reactivity to avoid DataCloneError
-            const data = toRaw(result.data);
-            await window.electron.invoke('action:execute', result.action, data);
+            const rawData = toRaw(result.data) || {};
+
+            // Enrich data with display info for history
+            const payload = {
+                ...rawData,
+                title: result.title,
+                icon: result.icon,
+                id: result.id
+            };
+
+            await window.electron.invoke('action:execute', result.action, payload);
         } catch (error) {
             console.error('Action execution error:', error);
         }

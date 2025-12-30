@@ -1,4 +1,4 @@
-import { ipcMain, clipboard, shell, nativeTheme, app, dialog } from 'electron';
+import { ipcMain, clipboard, shell, nativeTheme, app, dialog, Menu, MenuItem } from 'electron';
 import { WindowManager } from '../window';
 import { SearchService } from '../services/search';
 import { getSettings, setSetting } from '../utils/config';
@@ -10,29 +10,35 @@ import { SystemPlugin } from '../plugins/system';
 import { logger } from '../utils/logger';
 import { AppIndexer } from '../services/app-indexer';
 import { exec } from 'child_process';
+import { ClipboardService } from '../services/clipboard';
+import { PluginMarketService } from '../services/plugin-market';
 import * as util from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
+import { addHistory, getHistory, clearHistory, removeHistory } from '../utils/config';
 
 const execAsync = util.promisify(exec);
 
+// Helper to extract icon via PowerShell (Fallback for some apps)
 async function getIconViaPowershell(path: string): Promise<string | null> {
-    const psScript = `
-    Add-Type -AssemblyName System.Drawing
-    $icon = [System.Drawing.Icon]::ExtractAssociatedIcon('${path}')
-    if ($icon) {
-        $bitmap = $icon.ToBitmap()
-        $stream = New-Object System.IO.MemoryStream
-        $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
-        $bytes = $stream.ToArray()
-        $base64 = [Convert]::ToBase64String($bytes)
-        Write-Output "BASE64_START$base64"
-    }
-    `;
-
     try {
-        const { stdout } = await execAsync(`powershell -NoProfile -Command "${psScript.replace(/"/g, '\\"')}"`);
-        const match = stdout.match(/BASE64_START(.+)/);
-        if (match && match[1]) {
-            return `data:image/png;base64,${match[1].trim()}`;
+        const psCommand = `
+        Add-Type -AssemblyName System.Drawing
+        $icon = [System.Drawing.Icon]::ExtractAssociatedIcon('${path}')
+        if ($icon) {
+            $bitmap = $icon.ToBitmap()
+            $stream = New-Object System.IO.MemoryStream
+            $bitmap.Save($stream, [System.Drawing.Imaging.ImageFormat]::Png)
+            $bytes = $stream.ToArray()
+            $base64 = [Convert]::ToBase64String($bytes)
+            Write-Output $base64
+        }
+        `;
+
+        const { stdout } = await execAsync(`powershell -NoProfile -Command "${psCommand.replace(/\n/g, ' ')}"`);
+        const base64 = stdout.trim();
+        if (base64 && base64.length > 0) {
+            return `data:image/png;base64,${base64}`;
         }
     } catch (e) {
         logger.error(`[Icon] PowerShell extraction failed for ${path}:`, e);
@@ -45,8 +51,24 @@ export function registerIpcHandlers(
     searchService: SearchService,
     hotkeyService: HotkeyService,
     trayService: TrayService,
-    appIndexer: AppIndexer
+    appIndexer: AppIndexer,
+    clipboardService: ClipboardService,
+    marketService: PluginMarketService
 ): void {
+    logger.info('[IPC] Registering handlers...');
+    logger.info(`[IPC] Services status:
+        WindowManager: ${!!windowManager}
+        SearchService: ${!!searchService}
+        HotkeyService: ${!!hotkeyService}
+        TrayService: ${!!trayService}
+        AppIndexer: ${!!appIndexer}
+        ClipboardService: ${!!clipboardService}
+        MarketService: ${!!marketService}
+    `);
+
+    if (!marketService) {
+        logger.error('[IPC] CRITICAL: MarketService is undefined during registration!');
+    }
 
     ipcMain.handle('get-file-icon', async (_event, path: string) => {
         try {
@@ -93,6 +115,29 @@ export function registerIpcHandlers(
                 case 'launch-app':
                     logger.info(`[IPC] Launching app: ${data.path}`);
                     await AppSearchPlugin.launchApp(data.path);
+
+                    // Add to history
+                    // We need icon and title. data usually only has path.
+                    // Ideally we should pass the full item or at least title/icon from renderer.
+                    // For now, let's trust the data passed from renderer implies what we clicked.
+                    // Wait, `action:execute` data is just `{ path: ... }`.
+                    // We need to change the renderer to pass more info OR resolve it here.
+                    // Resolving here is hard (re-search?).
+                    // Let's UPDATE the `action:execute` call in renderer to pass full item info if possible?
+                    // Or, simpler: update this handler to accept `data` as the item itself or enriched data.
+
+                    // Let's assume data has `title` and `icon` now (we will update renderer).
+                    if (data.title && data.path) {
+                        addHistory({
+                            id: data.id || `history-${Date.now()}`,
+                            title: data.title,
+                            path: data.path,
+                            icon: data.icon || '',
+                            type: 'app',
+                            action: 'launch-app'
+                        });
+                    }
+
                     windowManager.hide();
                     break;
 
@@ -108,6 +153,25 @@ export function registerIpcHandlers(
 
                 case 'open-path':
                     await shell.openPath(data.path);
+                    windowManager.hide();
+                    break;
+
+                case 'plugin-execute':
+                    // Reconstruct SearchResult-like object or pass data directly if structure matches
+                    // data from renderer usually contains the whole result object or just the data part?
+                    // result.action was 'plugin-execute'. result.data is passed here as `data`.
+                    // Wait, `action:execute` receives (action, data).
+                    // In `plugin-loader.ts`, we set data: { pluginName: ..., payload: ... }.
+                    // So we need to call searchService.executePluginItem wrapper.
+
+                    // We construct a mock SearchResult to satisfy the interface
+                    await searchService.executePluginItem({
+                        id: 'exec-context',
+                        title: 'exec',
+                        type: 'plugin',
+                        action: 'plugin-execute',
+                        data: data // data is the { pluginName, payload } object
+                    });
                     windowManager.hide();
                     break;
 
@@ -207,6 +271,20 @@ export function registerIpcHandlers(
             win.webContents.send('settings:updated', getSettings());
         });
 
+        // Handle Plugin State Updates
+        if (key === 'plugins') {
+            const pluginsSettings = value;
+            for (const [name, config] of Object.entries(pluginsSettings)) {
+                // Update SearchService
+                searchService.setPluginEnabled(name, (config as any).enabled);
+
+                // Special handling for Clipboard History Service
+                if (name === 'Clipboard History') {
+                    clipboardService.setEnabled((config as any).enabled);
+                }
+            }
+        }
+
         return true;
     });
 
@@ -253,12 +331,53 @@ export function registerIpcHandlers(
 
     // 插件列表
     ipcMain.handle(IPC_CHANNELS.PLUGIN_LIST, () => {
-        return searchService.getPlugins().map((p) => ({
-            name: p.name,
-            description: p.description,
-            enabled: p.enabled,
-            icon: p.icon,
-        }));
+        return searchService.getPlugins()
+            .filter(p => p.name !== 'app-search') // Hide core plugin
+            .map((p) => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                enabled: p.enabled,
+                icon: p.icon,
+                isExternal: p.isExternal,
+            }));
+    });
+
+    // 插件重载
+    ipcMain.handle('plugin:reload', async () => {
+        logger.info('[IPC] Reloading plugins...');
+        await searchService.reloadExternalPlugins();
+        return true;
+    });
+
+    // Plugin Market Headers
+    ipcMain.handle('plugin:market-list', async () => {
+        return await marketService.getPluginList();
+    });
+
+    ipcMain.handle('plugin:install', async (_event, plugin) => {
+        logger.info(`[IPC] Received install request for plugin: ${plugin?.name} (ID: ${plugin?.id})`);
+        try {
+            await marketService.installPlugin(plugin);
+            // Also trigger generic search reload to be safe
+            await searchService.reloadExternalPlugins();
+            return true;
+        } catch (e) {
+            logger.error(`[IPC] Handler failed for plugin:install`, e);
+            throw e;
+        }
+    });
+
+    ipcMain.handle('plugin:uninstall', async (_event, pluginId: string) => {
+        logger.info(`[IPC] Received uninstall request for plugin ID: ${pluginId}`);
+        try {
+            await marketService.uninstallPlugin(pluginId);
+            await searchService.reloadExternalPlugins();
+            return true;
+        } catch (e) {
+            logger.error(`[IPC] Handler failed for plugin:uninstall`, e);
+            throw e;
+        }
     });
 
     // 重建索引
@@ -267,6 +386,35 @@ export function registerIpcHandlers(
         const settings = getSettings();
         await appIndexer.buildIndex(customPaths || settings.customPaths);
         return true;
+    });
+
+    ipcMain.handle('plugin:install-local', async () => {
+        logger.info('[IPC] Received local install request');
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+            title: '选择插件包 (Select Plugin Zip)',
+            filters: [{ name: 'Zip Files', extensions: ['zip'] }],
+            properties: ['openFile']
+        });
+
+        if (canceled || filePaths.length === 0) return false;
+
+        const filePath = filePaths[0];
+        try {
+            await marketService.installLocalPlugin(filePath);
+            await searchService.reloadExternalPlugins();
+            return true;
+        } catch (e) {
+            logger.error('[IPC] Local install failed:', e);
+            throw e;
+        }
+    });
+
+    ipcMain.handle('plugin:open-plugins-dir', async () => {
+        const settings = getSettings();
+        const pluginsDir = (settings.pluginPath && fs.existsSync(settings.pluginPath))
+            ? settings.pluginPath
+            : path.join(app.getPath('userData'), 'plugins');
+        await shell.openPath(pluginsDir);
     });
 
     // 打开文件夹对话框
@@ -278,6 +426,44 @@ export function registerIpcHandlers(
             return null;
         }
         return result.filePaths[0];
+    });
+
+    // 历史记录
+    ipcMain.handle('history:get', () => {
+        return getHistory();
+    });
+
+    ipcMain.handle('history:add', (_event, item) => {
+        addHistory(item);
+        return true;
+    });
+
+    ipcMain.handle('history:clear', () => {
+        clearHistory();
+        return true;
+    });
+
+    ipcMain.handle('history:remove', (_event, id) => {
+        removeHistory(id);
+        const windows = windowManager.getAllWindows();
+        windows.forEach(win => win.webContents.send('history:updated'));
+        return true;
+    });
+
+    ipcMain.handle('menu:open-history-context', (_event, item) => {
+        const menu = new Menu();
+        const deleteLabel = (item.labels && item.labels.delete) ? item.labels.delete : 'Delete';
+
+        menu.append(new MenuItem({
+            label: deleteLabel,
+            click: () => {
+                removeHistory(item.id);
+                // Refresh all windows
+                const windows = windowManager.getAllWindows();
+                windows.forEach(win => win.webContents.send('history:updated'));
+            }
+        }));
+        menu.popup();
     });
 
     logger.info('IPC handlers registered');

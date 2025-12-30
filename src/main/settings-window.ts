@@ -18,11 +18,12 @@ export class SettingsWindow {
             show: false,
             frame: true, // 设置窗口有边框
             autoHideMenuBar: true,
-            title: 'Settings - Antigravity',
+            title: 'Lightning Start Settings',
+            icon: path.join(__dirname, '../../assets/icon.png'),
             webPreferences: {
                 preload: path.join(__dirname, '../preload/index.js'),
-                contextIsolation: true,
                 nodeIntegration: false,
+                contextIsolation: true,
             },
         });
 

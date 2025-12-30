@@ -22,6 +22,24 @@
             </div>
         </div>
 
+        <!-- Grid Gap -->
+        <div class="setting-group">
+            <div class="setting-label-group">
+                <label class="setting-label">{{ t('settings.advanced.gridGap.label') }}</label>
+            </div>
+            <div class="control range-control">
+                <input 
+                    type="range" 
+                    min="4" 
+                    max="256" 
+                    step="4" 
+                    v-model.number="settings.window.gridGap" 
+                    @input="updateGridGap"
+                >
+                <span class="value">{{ settings.window.gridGap }}px</span>
+            </div>
+        </div>
+
         <!-- Super Panel (Placeholder) -->
         <div class="setting-group">
             <div class="setting-label-group">
@@ -35,18 +53,7 @@
         </div>
 
         <!-- Clipboard -->
-        <div class="setting-group">
-            <div class="setting-label-group">
-                <label class="setting-label">{{ t('settings.advanced.clipboard.label') }}</label>
-                <div class="setting-desc">{{ t('settings.advanced.clipboard.desc') }}</div>
-            </div>
-            <div class="control">
-                 <label class="switch">
-                    <input type="checkbox" v-model="settings.clipboardEnabled">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-        </div>
+
     </div>
   </div>
 </template>
@@ -62,6 +69,10 @@ const { t } = useI18n();
 
 function updateOpacity() {
     window.electron.send('window:style-update', { opacity: settings.window.opacity });
+}
+
+function updateGridGap() {
+    window.electron.send('window:style-update', { gridGap: settings.window.gridGap });
 }
 
 function endPreview() {

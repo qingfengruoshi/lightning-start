@@ -71,6 +71,20 @@
                 </select>
             </div>
         </div>
+
+        <!-- Plugin Path -->
+        <div class="setting-group">
+            <div class="setting-label-group">
+                <label class="setting-label">{{ t('settings.basic.pluginPath.label') }}</label>
+                <div class="setting-desc">{{ t('settings.basic.pluginPath.desc') }}</div>
+            </div>
+            <div class="control" style="flex-direction: column; align-items: flex-end; gap: 8px;">
+                <div class="path-display" :title="settings.pluginPath">
+                    {{ settings.pluginPath || t('settings.basic.pluginPath.default') }}
+                </div>
+                <button class="secondary-btn" @click="changePluginPath">{{ t('settings.basic.pluginPath.btn') }}</button>
+            </div>
+        </div>
     </div>
   </div>
 </template>
@@ -82,6 +96,13 @@ import { useI18n } from '../../composables/useI18n';
 
 const settings = inject<Settings>('settings')!;
 const { t } = useI18n();
+
+async function changePluginPath() {
+    const path = await window.electron.invoke('dialog:open-directory');
+    if (path) {
+        settings.pluginPath = path;
+    }
+}
 </script>
 
 <style scoped>
@@ -189,4 +210,32 @@ const { t } = useI18n();
 }
 input:checked + .slider { background-color: var(--accent-color); }
 input:checked + .slider:before { transform: translateX(20px); }
+
+.path-display {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.secondary-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.secondary-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--text-muted);
+}
 </style>

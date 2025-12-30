@@ -30,7 +30,7 @@
       </div>
 
       <!-- Footer with Save Button -->
-      <div class="settings-footer">
+      <div class="settings-footer" v-if="currentTab !== 'about'">
           <div class="save-status" :class="{ show: showSavedMessage }">
               {{ t('settings.saved') }}
           </div>
@@ -88,6 +88,7 @@ const settings = reactive<Settings>({
     autoStart: false,
     showTray: true,
     hideOnBlur: true,
+    clipboardEnabled: false,
     maxResults: 10,
     searchMode: 'fuzzy',
     customPaths: [],

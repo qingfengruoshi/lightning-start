@@ -45,3 +45,52 @@ export function setSetting<K extends keyof Settings>(
 export function resetSettings(): void {
     settingsStore.clear();
 }
+
+// 历史记录存储
+export interface HistoryItem {
+    id: string;
+    title: string;
+    path: string; // Action data path
+    icon: string;
+    type: string;
+    action: string;
+    timestamp: number;
+}
+
+export const historyStore = new Store<{ history: HistoryItem[] }>({
+    name: 'app-history',
+    defaults: { history: [] },
+});
+
+// 添加历史记录
+export function addHistory(item: Omit<HistoryItem, 'timestamp'>): void {
+    const history = historyStore.get('history', []);
+
+    // Remove if exists (to move to top)
+    const filtered = history.filter(h => h.path !== item.path);
+
+    // Add to front
+    filtered.unshift({ ...item, timestamp: Date.now() });
+
+    // Limit to 10 items
+    const limited = filtered.slice(0, 10);
+
+    historyStore.set('history', limited);
+}
+
+// 获取历史记录
+export function getHistory(): HistoryItem[] {
+    return historyStore.get('history', []);
+}
+
+// 清除历史记录
+export function clearHistory(): void {
+    historyStore.set('history', []);
+}
+
+// 删除单条历史
+export function removeHistory(id: string): void {
+    const history = historyStore.get('history', []);
+    const filtered = history.filter(h => h.id !== id);
+    historyStore.set('history', filtered);
+}

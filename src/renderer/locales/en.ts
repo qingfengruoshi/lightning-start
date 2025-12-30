@@ -35,6 +35,12 @@ export default {
                     light: 'Light',
                     auto: 'System'
                 }
+            },
+            pluginPath: {
+                label: 'Plugin Directory',
+                desc: 'Change plugin location (Restart required)',
+                btn: 'Browse...',
+                default: 'Default Location'
             }
         },
         hotkey: {
@@ -72,6 +78,12 @@ export default {
                     calculator: 'Calculator',
                     system: 'System Commands',
                     clipboard: 'Clipboard History'
+                },
+                descriptions: {
+                    appSearch: 'Search installed applications',
+                    calculator: 'Built-in basic calculator',
+                    system: 'System level commands',
+                    clipboard: 'Record and search clipboard history'
                 }
             },
             localApp: {
@@ -83,6 +95,9 @@ export default {
             title: 'Advanced',
             opacity: {
                 label: 'Window Opacity'
+            },
+            gridGap: {
+                label: 'History Grid Spacing'
             },
             superPanel: {
                 label: 'Super Panel',
@@ -99,7 +114,8 @@ export default {
             checkUpdate: 'Check Update',
             author: 'Author',
             license: 'License',
-            github: 'GitHub Repo'
+            github: 'GitHub Repository',
+            visit: 'Click to Visit'
         }
     }
 }

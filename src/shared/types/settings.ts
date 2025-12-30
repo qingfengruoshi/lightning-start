@@ -10,12 +10,14 @@ export interface Settings {
     maxResults: number;
     searchMode: 'fuzzy' | 'exact'; // New
     customPaths: string[];
+    pluginPath: string; // New: Custom plugin directory
     // 外观设置
     window: {
         width: number;
         height: number;
         opacity: number;
         fontSize: number;
+        gridGap: number; // New
     };
     plugins: {
         [key: string]: {
@@ -37,11 +39,13 @@ export const defaultSettings: Settings = {
     maxResults: 10,
     searchMode: 'fuzzy',
     customPaths: [],
+    pluginPath: '', // Empty means default path
     window: {
         width: 800,
         height: 600,
         opacity: 0.95,
         fontSize: 14,
+        gridGap: 12, // Default
     },
     plugins: {},
 };

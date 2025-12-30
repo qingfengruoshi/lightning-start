@@ -14,17 +14,22 @@ export interface SearchResult {
 
 // 插件接口
 export interface Plugin {
+    id?: string; // Unique ID (e.g. package name)
     name: string;
     description: string;
     priority: number;
     icon?: string;
     enabled: boolean;
+    isExternal?: boolean; // Identify if plugin is external for reloading
 
     // 是否匹配当前查询
     match(query: string): boolean;
 
     // 执行搜索
     search(query: string, options?: { searchMode?: 'fuzzy' | 'exact' }): Promise<SearchResult[]>;
+
+    // 执行结果 (可选，用于处理插件自定义动作)
+    execute?(item: SearchResult): Promise<void> | void;
 
     // 初始化插件
     onLoad?(): void | Promise<void>;

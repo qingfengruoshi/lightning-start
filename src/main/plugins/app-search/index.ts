@@ -29,13 +29,11 @@ export class AppSearchPlugin implements Plugin {
         const apps = this.appIndexer.search(query, options?.searchMode);
         logger.debug(`AppSearchPlugin: found ${apps.length} apps from indexer`);
 
-        const results: SearchResult[] = [];
-
-        for (const app of apps) {
-            // 异步获取图标（不阻塞搜索）
+        const results: SearchResult[] = await Promise.all(apps.map(async (app) => {
+            // 异步获取图标（并行）
             const icon = await this.getAppIcon(app);
 
-            results.push({
+            return {
                 id: `app:${app.path}`,
                 title: app.name,
                 subtitle: app.path,
@@ -45,8 +43,8 @@ export class AppSearchPlugin implements Plugin {
                 data: { path: app.path },
                 frequency: app.frequency,
                 pinyin: app.pinyin,
-            });
-        }
+            };
+        }));
 
         logger.debug(`AppSearchPlugin: returning ${results.length} results`);
         return results;

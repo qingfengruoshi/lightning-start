@@ -3,19 +3,17 @@
     
     <div class="about-section">
         <div class="app-logo">⚡</div>
-        <h3>Antigravity</h3>
+        <h3>lightning-start</h3>
         <p class="version">{{ t('settings.about.version') }} 1.0.0</p>
-        
-        <button class="secondary-btn">{{ t('settings.about.checkUpdate') }}</button>
         
         <div class="about-links">
             <div class="info-row">
                 <span class="label">{{ t('settings.about.author') }}:</span>
-                <span class="value">Antigravity Team</span>
+                <span class="value">ShuoJing</span>
             </div>
              <div class="info-row">
                 <span class="label">{{ t('settings.about.github') }}:</span>
-                <span class="value link" @click="openGithub">github.com/rubickCenter/rubick</span>
+                <span class="value link" @click="openGithub">{{ t('settings.about.visit') }}</span>
             </div>
              <div class="info-row">
                 <span class="label">{{ t('settings.about.license') }}:</span>
@@ -34,7 +32,7 @@ import { useI18n } from '../../composables/useI18n';
 const { t } = useI18n();
 
 function openGithub() {
-    window.electron.openExternal('https://github.com/rubickCenter/rubick');
+    window.electron.openExternal('https://github.com/qingfengruoshi/lightning-start');
 }
 </script>
 

@@ -1,16 +1,18 @@
-
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, nativeTheme } from 'electron';
 import { WindowManager } from './window';
 import { HotkeyService } from './services/hotkey';
-import { SearchService } from './services/search';
 import { AppIndexer } from './services/app-indexer';
 import { IconExtractor } from './services/icon-extractor';
 import { TrayService } from './services/tray';
+import { PluginLoader } from './services/plugin-loader';
+import { PluginMarketService } from './services/plugin-market';
+import { SearchService } from './services/search';
+import { ClipboardService } from './services/clipboard';
+import { PluginDataService } from './services/database';
 import { AppSearchPlugin } from './plugins/app-search';
 import { CalculatorPlugin } from './plugins/calculator';
 import { SystemPlugin } from './plugins/system';
 import { ClipboardPlugin } from './plugins/clipboard';
-import { ClipboardService } from './services/clipboard';
 import { registerIpcHandlers } from './ipc/handlers';
 import { getSettings } from './utils/config';
 import { logger, LogLevel } from './utils/logger';
@@ -28,6 +30,9 @@ let searchService: SearchService;
 let appIndexer: AppIndexer;
 let iconExtractor: IconExtractor;
 let clipboardService: ClipboardService;
+let pluginLoader: PluginLoader;
+let marketService: PluginMarketService;
+let pluginDataService: PluginDataService;
 
 // 应用就绪
 app.whenReady().then(async () => {
@@ -35,15 +40,22 @@ app.whenReady().then(async () => {
 
     // 创建窗口管理器
     windowManager = new WindowManager();
-    // windowManager.createWindow(); // Moved to end
 
     // 创建服务
     appIndexer = new AppIndexer();
     iconExtractor = new IconExtractor();
-    searchService = new SearchService();
+
+    // 初始化数据库服务
+    pluginDataService = new PluginDataService();
+
+    // 初始化插件加载器 (注入数据库服务)
+    pluginLoader = new PluginLoader(pluginDataService);
+
+    searchService = new SearchService(pluginLoader);
     clipboardService = new ClipboardService();
     hotkeyService = new HotkeyService(windowManager);
     trayService = new TrayService(windowManager);
+    marketService = new PluginMarketService(pluginLoader);
 
     // 注册插件
     const appSearchPlugin = new AppSearchPlugin(appIndexer, iconExtractor);
@@ -60,18 +72,25 @@ app.whenReady().then(async () => {
     await searchService.initializePlugins();
 
     // 注册 IPC 处理器
-    registerIpcHandlers(windowManager, searchService, hotkeyService, trayService, appIndexer);
+    registerIpcHandlers(windowManager, searchService, hotkeyService, trayService, appIndexer, clipboardService, marketService);
 
     // 获取设置
     const settings = getSettings();
 
     // 注册全局快捷键
-    // 注册全局快捷键
     hotkeyService.register(settings.hotkey);
 
-    // 初始化剪贴板服务
-    if (settings.clipboardEnabled) {
-        clipboardService.setEnabled(true);
+    // 同步插件状态 & 初始化剪贴板服务
+    if (settings.plugins) {
+        for (const [name, config] of Object.entries(settings.plugins)) {
+            // Apply to search service
+            searchService.setPluginEnabled(name, config.enabled);
+
+            // Apply to clipboard service
+            if (name === 'Clipboard History') {
+                clipboardService.setEnabled(config.enabled);
+            }
+        }
     }
 
     // 初始化托盘
@@ -79,10 +98,10 @@ app.whenReady().then(async () => {
         trayService.create();
     }
 
-    // 设置开机自启 (Ensure sync with settings)
+    // 设置开机自启
     app.setLoginItemSettings({
         openAtLogin: settings.autoStart,
-        openAsHidden: true, // Typically start hidden in background
+        openAsHidden: true,
     });
 
     logger.info('Application initialized successfully');

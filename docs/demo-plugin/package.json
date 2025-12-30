@@ -1,0 +1,14 @@
+{
+    "name": "demo-plugin",
+    "version": "1.0.0",
+    "main": "index.js",
+    "antigravity": {
+        "type": "search",
+        "triggers": [
+            "Hi",
+            "Hello"
+        ],
+        "title": "Hello World Plugin",
+        "description": "A simple demo plugin to test external loading."
+    }
+}

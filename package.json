@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A powerful quick launcher inspired by Rubick",
   "main": "dist/main/index.js",
-  "author": "Your Name",
+  "author": "ShuoJing",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

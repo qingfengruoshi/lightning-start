@@ -39,9 +39,9 @@ export class ClipboardPlugin implements Plugin {
             title: item.text.replace(/\n/g, ' '),
             subtitle: new Date(item.timestamp).toLocaleString(),
             type: 'plugin',
-            action: 'copy', // We'll handle this in action execution
+            action: 'copy-to-clipboard',
             icon: '📋',
-            data: item.text
+            data: { text: item.text }
         }));
     }
 }

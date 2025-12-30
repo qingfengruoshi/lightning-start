@@ -1,8 +1,14 @@
 import { Plugin, SearchResult } from '@shared/types/plugin';
 import { logger } from '../utils/logger';
+import { PluginLoader } from './plugin-loader';
 
 export class SearchService {
     private plugins: Plugin[] = [];
+    private pluginLoader: PluginLoader;
+
+    constructor(pluginLoader?: PluginLoader) {
+        this.pluginLoader = pluginLoader || new PluginLoader();
+    }
 
     registerPlugin(plugin: Plugin): void {
         this.plugins.push(plugin);
@@ -16,6 +22,14 @@ export class SearchService {
         if (index !== -1) {
             this.plugins.splice(index, 1);
             logger.info(`Plugin unregistered: ${name}`);
+        }
+    }
+
+    setPluginEnabled(name: string, enabled: boolean): void {
+        const plugin = this.plugins.find(p => p.name === name);
+        if (plugin) {
+            plugin.enabled = enabled;
+            logger.info(`Plugin ${name} enabled state set to: ${enabled}`);
         }
     }
 
@@ -56,7 +70,7 @@ export class SearchService {
         return results
             .map((r) => ({
                 ...r,
-                score: this.calculateScore(r, query),
+                score: r.score !== undefined ? r.score : this.calculateScore(r, query),
             }))
             .sort((a, b) => b.score! - a.score!);
     }
@@ -95,6 +109,10 @@ export class SearchService {
     }
 
     async initializePlugins(): Promise<void> {
+        // Load external plugins
+        const externalPlugins = this.pluginLoader.loadPlugins();
+        externalPlugins.forEach(p => this.registerPlugin(p));
+
         for (const plugin of this.plugins) {
             if (plugin.onLoad) {
                 try {
@@ -118,5 +136,45 @@ export class SearchService {
                 }
             }
         }
+    }
+
+    async executePluginItem(result: SearchResult): Promise<void> {
+        if (result.data && result.data.pluginName) {
+            const plugin = this.plugins.find(p => p.name === result.data.pluginName);
+            if (plugin && plugin.execute) {
+                try {
+                    await plugin.execute(result);
+                    logger.info(`Executed action for plugin ${plugin.name}`);
+                } catch (e) {
+                    logger.error(`Failed to execute action for plugin ${plugin.name}:`, e);
+                }
+            }
+        }
+    }
+
+    async reloadExternalPlugins(): Promise<void> {
+        // 1. Unload existing external plugins
+        // Filter out plugins that are NOT external (keep system plugins)
+        const builtInPlugins = this.plugins.filter(p => !p.isExternal);
+
+        // Call lifecycle unload for external plugins
+        const externalPlugins = this.plugins.filter(p => p.isExternal);
+        for (const p of externalPlugins) {
+            if (p.onUnload) await p.onUnload();
+        }
+
+        // 2. Clear loader cache and reload
+        const newExternalPlugins = this.pluginLoader.reload();
+
+        // 3. Rebuild plugins list
+        this.plugins = [...builtInPlugins];
+        newExternalPlugins.forEach(p => this.registerPlugin(p));
+
+        // 4. Initialize new plugins
+        for (const p of newExternalPlugins) {
+            if (p.onLoad) await p.onLoad();
+        }
+
+        logger.info(`[SearchService] Reloaded ${newExternalPlugins.length} external plugins`);
     }
 }

@@ -1,5 +1,6 @@
 import { Tray, Menu, app, nativeImage } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs';
 import { WindowManager } from '../window';
 import { logger } from '../utils/logger';
 
@@ -15,24 +16,37 @@ export class TrayService {
         if (this.tray) return;
 
         try {
-            // Use a specific icon for the tray
-            let iconPath = path.join(__dirname, '../../resources/icon.png');
-            if (process.env.NODE_ENV === 'development') {
-                // Adjust path for dev mode if needed, usually resources/icon.png is fine if copied
-                // Or fallback to a known location
-                iconPath = path.join(process.cwd(), 'resources/icon.png');
+            // Priority: tray_icon.png (Custom) -> icon.png (Default)
+            // Use resolve to get absolute path for fs.existsSync
+            const resourcesDir = process.env.NODE_ENV === 'development'
+                ? path.join(process.cwd(), 'resources')
+                : path.join(__dirname, '../../resources');
+
+            let iconPath = path.join(resourcesDir, 'tray_icon.png');
+            let usingCustomIcon = false;
+
+            if (fs.existsSync(iconPath)) {
+                usingCustomIcon = true;
+                logger.info(`[Tray] Found custom icon at: ${iconPath}`);
+            } else {
+                logger.info(`[Tray] Custom icon not found at ${iconPath}, fallback to default.`);
+                iconPath = path.join(resourcesDir, 'icon.png');
             }
 
             // If icon doesn't exist, Electron might show a default or transparent icon
             const icon = nativeImage.createFromPath(iconPath);
 
             // Resize for tray (16x16 is standard for Windows)
-            const trayIcon = icon.resize({ width: 16, height: 16 });
+            // If using custom, maybe try without resize or use 32x32 for better quality?
+            // Windows usually scales down automatically if too big, but consistent 32x32 is often better for HiDPI.
+            // Let's try 32x32 if it's custom.
+            const size = usingCustomIcon ? 32 : 16;
+            const trayIcon = icon.resize({ width: size, height: size });
 
             this.tray = new Tray(trayIcon);
-            this.tray.setToolTip('Antigravity');
+            this.tray.setToolTip('Lightning Start');
 
-            this.setupContextMenu();
+            this.updateMenu(this.currentLanguage); // Changed from setupContextMenu to updateMenu, passing currentLanguage
 
             this.tray.on('click', () => {
                 this.windowManager.toggle();
