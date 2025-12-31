@@ -25,13 +25,14 @@ export interface Settings {
             config: Record<string, any>;
         };
     };
+    hasSeenWelcome: boolean; // New: First run guide flag
 }
 
 // 默认设置
 export const defaultSettings: Settings = {
     hotkey: 'Alt+Space',
     theme: 'auto',
-    language: 'en',
+    language: 'zh-CN',
     autoStart: true,
     showTray: true,
     hideOnBlur: true,
@@ -48,4 +49,5 @@ export const defaultSettings: Settings = {
         gridGap: 12, // Default
     },
     plugins: {},
+    hasSeenWelcome: false,
 };

@@ -209,6 +209,11 @@ export function registerIpcHandlers(
         windowManager.setSize(width, height);
     });
 
+    ipcMain.on('window:set-size', (_event, size: { width: number, height: number }) => {
+        console.log(`[IPC] Received window:set-size width=${size.width} height=${size.height}`);
+        windowManager.setSize(size.width, size.height);
+    });
+
     // 实时样式更新 (用于预览)
     ipcMain.on('window:style-update', (_event, style: any) => {
         windowManager.applyWindowSettings(style, true);

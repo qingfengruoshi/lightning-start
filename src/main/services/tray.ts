@@ -16,21 +16,36 @@ export class TrayService {
         if (this.tray) return;
 
         try {
-            // Priority: tray_icon.png (Custom) -> icon.png (Default)
-            // Use resolve to get absolute path for fs.existsSync
-            const resourcesDir = process.env.NODE_ENV === 'development'
-                ? path.join(process.cwd(), 'resources')
-                : path.join(__dirname, '../../resources');
+            // Priority:
+            // 1. Dev: assets/icon.png (User updated)
+            // 2. Prod: resources/icon.png (Packaged)
 
-            let iconPath = path.join(resourcesDir, 'tray_icon.png');
-            let usingCustomIcon = false;
+            let iconPath = '';
 
-            if (fs.existsSync(iconPath)) {
-                usingCustomIcon = true;
-                logger.info(`[Tray] Found custom icon at: ${iconPath}`);
-            } else {
-                logger.info(`[Tray] Custom icon not found at ${iconPath}, fallback to default.`);
-                iconPath = path.join(resourcesDir, 'icon.png');
+            if (process.env.NODE_ENV === 'development') {
+                const assetIcon = path.join(process.cwd(), 'assets/tray_icon.png');
+                if (fs.existsSync(assetIcon)) {
+                    iconPath = assetIcon;
+                    logger.info(`[Tray] Development mode: Using asset icon at ${iconPath}`);
+                }
+            }
+
+            if (!iconPath) {
+                const resourcesDir = process.env.NODE_ENV === 'development'
+                    ? path.join(process.cwd(), 'resources')
+                    : process.resourcesPath;
+
+                // Try tray_icon.png first, fall back to icon.png if needed? 
+                // User said tray_icon.png IS the one.
+                iconPath = path.join(resourcesDir, 'tray_icon.png');
+
+                // Fallback validation could be added here if we were unsure, but let's trust the user intent.
+                if (!fs.existsSync(iconPath)) {
+                    // If it doesn't exist in resources, maybe fall back to generic icon.png to avoid crash
+                    // valid for dev-without-resources or prod-without-copy
+                    const fallback = path.join(resourcesDir, 'icon.png');
+                    if (fs.existsSync(fallback)) iconPath = fallback;
+                }
             }
 
             // If icon doesn't exist, Electron might show a default or transparent icon
@@ -40,6 +55,8 @@ export class TrayService {
             // If using custom, maybe try without resize or use 32x32 for better quality?
             // Windows usually scales down automatically if too big, but consistent 32x32 is often better for HiDPI.
             // Let's try 32x32 if it's custom.
+            // Let's try 32x32 if it's custom.
+            const usingCustomIcon = iconPath.includes('assets');
             const size = usingCustomIcon ? 32 : 16;
             const trayIcon = icon.resize({ width: size, height: size });
 
@@ -73,13 +90,13 @@ export class TrayService {
             showHide: '显示/隐藏',
             settings: '设置',
             quit: '退出',
-            title: 'Antigravity'
+            title: 'Lightning Start'
         },
         'en': {
             showHide: 'Show/Hide',
             settings: 'Settings',
             quit: 'Quit',
-            title: 'Antigravity'
+            title: 'Lightning Start'
         }
     };
 

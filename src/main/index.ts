@@ -117,6 +117,12 @@ app.whenReady().then(async () => {
     // 最后创建窗口，确保所有服务和 IPC 都已就绪
     windowManager.createWindow();
 
+    // 首次运行自动显示引导
+    if (!settings.hasSeenWelcome) {
+        logger.info('First run detected, showing main window');
+        windowManager.show();
+    }
+
     // macOS 特定行为
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
