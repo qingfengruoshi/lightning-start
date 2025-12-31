@@ -63,8 +63,16 @@ class ExternalPluginAdapter implements Plugin {
         // Resolve icon path to absolute if exists
         if (config.icon) {
             const iconPath = path.join(basePath, config.icon);
+            // Check if it looks like a file (has extension)
+            const hasExtension = /\.(png|jpe?g|svg|ico|gif|webp)$/i.test(config.icon);
+
             if (fs.existsSync(iconPath)) {
                 // Convert to protocol URL
+                this.icon = toProtocolUrl(iconPath);
+            } else if (hasExtension) {
+                // It looks like a file but checking existence failed (or maybe strict permissions?)
+                // Force conversion to URL anyway so renderer gets a loadable URL (which might 404, but better than treating as text)
+                logger.warn(`[PluginLoader] Icon file not found or inaccessible at: ${iconPath}. Forcing URL conversion.`);
                 this.icon = toProtocolUrl(iconPath);
             } else {
                 // Treat as text/emoji

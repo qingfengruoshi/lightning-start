@@ -333,14 +333,27 @@ export function registerIpcHandlers(
     ipcMain.handle(IPC_CHANNELS.PLUGIN_LIST, () => {
         return searchService.getPlugins()
             .filter(p => p.name !== 'app-search') // Hide core plugin
-            .map((p) => ({
-                id: p.id,
-                name: p.name,
-                description: p.description,
-                enabled: p.enabled,
-                icon: p.icon,
-                isExternal: p.isExternal,
-            }));
+            .map((p) => {
+                let icon = p.icon;
+                // Transform absolute local paths to antigravity-file protocol for secure rendering
+                if (icon && path.isAbsolute(icon)) {
+                    // Normalize backslashes for URL compatibility
+                    const normalized = icon.replace(/\\/g, '/');
+                    // Ensure triple slash for absolute paths (file:///C:/...)
+                    // If it starts with a drive letter (Windows), prepend /
+                    const urlPath = normalized.startsWith('/') ? normalized : `/${normalized}`;
+                    icon = `antigravity-file://${urlPath}`;
+                }
+
+                return {
+                    id: p.id,
+                    name: p.name,
+                    description: p.description,
+                    enabled: p.enabled,
+                    icon: icon,
+                    isExternal: p.isExternal,
+                };
+            });
     });
 
     // 插件重载
