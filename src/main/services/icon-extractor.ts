@@ -212,36 +212,49 @@ Add-Type -TypeDefinition $code -Language CSharp
 
             await execAsync(`powershell -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`);
 
-            // 检查文件是否存在且大小正常
+            // Check if file exists and is valid
             try {
                 const stats = await fs.stat(iconPath);
                 if (stats.size < 100) {
-                    logger.warn(`PowerShell extracted icon is too small (${stats.size} bytes) for ${exePath}`);
-                    return '';
+                    logger.warn(`High-res icon extraction failed (too small), falling back to standard extraction: ${exePath}`);
+                    return await this.extractIconWithFallback(exePath);
                 }
             } catch (e) {
-                logger.warn(`PowerShell icon file not created for ${exePath}`);
-                return '';
+                logger.warn(`High-res icon extraction failed (no file), falling back: ${exePath}`);
+                return await this.extractIconWithFallback(exePath);
             }
 
-            // 读取文件并返回 base64
+            // Read file and return base64 (Optimization planned later to return path)
             const pngBuffer = await fs.readFile(iconPath);
             const base64Icon = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-            logger.debug(`PowerShell icon extracted successfully: ${exePath} (${pngBuffer.length} bytes)`);
             return base64Icon;
         } catch (error) {
             logger.error(`PowerShell icon extraction failed for ${exePath}:`, error);
-            return ''; // 返回空字符串表示失败
+            // Last resort fallback
+            return this.extractIconWithFallback(exePath);
         } finally {
-            // Clean up temp script
             if (scriptPath) {
-                try {
-                    await fs.unlink(scriptPath);
-                } catch (e) {
-                    // Ignore cleanup error
-                }
+                try { await fs.unlink(scriptPath); } catch (e) { }
             }
         }
+    }
+
+    private async extractIconWithFallback(exePath: string): Promise<string> {
+        // Fallback to simpler method (ExtractAssociatedIcon) which is more robust but lower res
+        // Implementation similar to previous version but maybe just ensuring we get SOMETHING
+        logger.info(`Using fallback icon extraction for: ${exePath}`);
+        try {
+            const icon = await app.getFileIcon(exePath);
+            if (!icon.isEmpty()) {
+                const pngBuffer = icon.toPNG();
+                const iconPath = this.getCachedIconPath(exePath);
+                await fs.writeFile(iconPath, pngBuffer);
+                return `data:image/png;base64,${pngBuffer.toString('base64')}`;
+            }
+        } catch (e) {
+            logger.error('Fallback extraction failed:', e);
+        }
+        return '';
     }
 
     private getCachedIconPath(exePath: string): string {
