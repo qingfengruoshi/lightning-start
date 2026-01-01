@@ -139,7 +139,7 @@ function updateWindowHeight() {
         height += searchResults.value.length * ITEM_HEIGHT;
     } else if (historyVisible.value && historyCount.value > 0) {
         // Height = SearchBarHeight + (Math.ceil(AppsCount / Columns) * RowHeight) + Padding
-        const COLUMNS = 5;
+        const COLUMNS = 8;
         // Fixed row gap of 12px, item height 108px
         const ROW_HEIGHT = 120; 
         const PADDING_BOTTOM = 16;
@@ -305,13 +305,14 @@ onMounted(() => {
   width: v-bind('containerStyle.width');
   height: 100vh; /* Ensure container fills the allocated window size */
   max-height: 600px;
-  background: var(--bg-primary);
-  border-radius: 12px;
+  background: var(--bg-primary); /* Base layer */
+  border-radius: 16px;
   box-shadow: var(--shadow);
   overflow: hidden;
-  backdrop-filter: blur(20px);
+  /* Glass effect handled by composition in main window usually, but we add visual flair here */
+  border: 1px solid var(--border-color);
   -webkit-app-region: drag;
-  box-sizing: border-box; /* Ensure padding doesn't overflow */
+  box-sizing: border-box; 
 }
 
 .search-container {

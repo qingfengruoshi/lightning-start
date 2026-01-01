@@ -26,13 +26,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useI18n } from '../../composables/useI18n';
 
 const { t } = useI18n();
 
 function openGithub() {
-    window.electron.openExternal('https://github.com/qingfengruoshi/lightning-start');
+    (window as any).electron.openExternal('https://github.com/qingfengruoshi/lightning-start');
 }
 </script>
 
@@ -103,24 +102,33 @@ h3 {
     margin-top: 32px;
     text-align: left;
     width: 100%;
-    max-width: 320px;
+    max-width: 360px;
     background: var(--bg-secondary);
-    padding: 16px;
-    border-radius: 12px;
+    padding: 12px 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .info-row {
     display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    margin-bottom: 8px;
+    justify-content: flex-start; /* Align left instead of spreading */
+    gap: 24px; /* Explicit gap between label and value */
+    font-size: 13px; /* Slightly larger for readability */
     align-items: center;
+    margin: 0; /* Let gap handle spacing */
 }
+/* Removed extra-spacing class as gap handles it uniformly */
 .info-row:last-child {
     margin-bottom: 0;
 }
 .info-row .label {
     color: var(--text-secondary);
+    min-width: 80px; /* Ensure labels align vertically */
+    text-align: left; /* Left align labels per user request */
 }
 .info-row .value {
     color: var(--text-primary);

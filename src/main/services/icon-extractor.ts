@@ -131,24 +131,81 @@ export class IconExtractor {
             scriptPath = path.join(tempDir, `extract-icon-${Date.now()}-${Math.random().toString(36).substring(7)}.ps1`);
 
             // Use the same robust logic as app-indexer
+            // Use IShellItemImageFactory for high-quality thumbnails (Windows Vista+)
+            // This is much better than ExtractAssociatedIcon which is limited to 32x32
             const script = `
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
-try {
-    Add-Type -AssemblyName System.Drawing
-    $icon = [System.Drawing.Icon]::ExtractAssociatedIcon('${exePath.replace(/'/g, "''")}')
-    if ($icon) {
-        $bitmap = $icon.ToBitmap()
-        $bitmap.Save('${iconPath.replace(/'/g, "''")}', [System.Drawing.Imaging.ImageFormat]::Png)
-        $bitmap.Dispose()
-        $icon.Dispose()
-        Write-Output "Success"
-    } else {
-        Write-Error "Failed to extract icon"
+Add-Type -AssemblyName System.Drawing
+$path = '${exePath.replace(/'/g, "''")}'
+$dest = '${iconPath.replace(/'/g, "''")}'
+
+$code = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Drawing;
+using System.Drawing.Imaging;
+
+namespace IconExtract {
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("bcc18b79-ba16-442f-80c4-8a59c30c463b")]
+    public interface IShellItemImageFactory {
+        void GetImage(
+            [In, MarshalAs(UnmanagedType.Struct)] Size size,
+            [In] int flags,
+            [Out] out IntPtr phbm);
     }
-} catch {
-    Write-Error $_
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe")]
+    public interface IShellItem {
+        void BindToHandler(IBindCtx pbc, [MarshalAs(UnmanagedType.LPStruct)] Guid bhid, [MarshalAs(UnmanagedType.LPStruct)] Guid riid, out IntPtr ppv);
+        void GetParent(out IShellItem ppsi);
+        void GetDisplayName(int sigdnName, out IntPtr ppszName);
+        void GetAttributes(uint sfgaoMask, out uint psfgaoAttribs);
+        void Compare(IShellItem psi, uint hint, out int piOrder);
+    }
+
+    public class Extractor {
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+        public static extern void SHCreateItemFromParsingName(
+            [MarshalAs(UnmanagedType.LPWStr)] string pszPath,
+            IntPtr pbc,
+            [MarshalAs(UnmanagedType.LPStruct)] Guid riid,
+            [MarshalAs(UnmanagedType.Interface)] out IShellItem ppv);
+
+        [DllImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool DeleteObject(IntPtr hObject);
+
+        public static void SaveIcon(string inputPath, string outputPath) {
+            Guid IID_IShellItem = new Guid("43826d1e-e718-42ee-bc55-a1e261c37bfe");
+            IShellItem shellItem;
+            SHCreateItemFromParsingName(inputPath, IntPtr.Zero, IID_IShellItem, out shellItem);
+
+            var imageFactory = (IShellItemImageFactory)shellItem;
+            IntPtr hBitmap;
+            
+            // SIIGBF_ICONONLY = 0x00000004 (Available in Win7+)
+            // SIIGBF_BIGGERSIZEOK = 0x00000001
+            // Requesting 256x256 for maximum quality
+            imageFactory.GetImage(new Size(256, 256), 0x00000004 | 0x00000001, out hBitmap);
+
+            if (hBitmap != IntPtr.Zero) {
+                using (var bitmap = Image.FromHbitmap(hBitmap)) {
+                    bitmap.Save(outputPath, ImageFormat.Png);
+                }
+                DeleteObject(hBitmap);
+            } else {
+                throw new Exception("Failed to get image");
+            }
+        }
+    }
 }
+'@
+
+Add-Type -TypeDefinition $code -Language CSharp
+[IconExtract.Extractor]::SaveIcon($path, $dest)
 `.trim();
 
             await fs.writeFile(scriptPath, script, 'utf8');

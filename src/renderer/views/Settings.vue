@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, provide, watch } from 'vue';
+import { ref, computed, reactive, onMounted, provide } from 'vue';
 import { useI18n } from '../composables/useI18n';
 import BasicSettings from '../components/settings/BasicSettings.vue';
 import HotkeySettings from '../components/settings/HotkeySettings.vue';
@@ -92,7 +92,7 @@ const settings = reactive<Settings>({
     maxResults: 10,
     searchMode: 'fuzzy',
     customPaths: [],
-    window: { width: 800, height: 600, opacity: 1, fontSize: 14 },
+    window: { width: 800, height: 600, opacity: 1, fontSize: 14, gridGap: 12 },
     plugins: {}
 });
 
@@ -171,27 +171,28 @@ async function saveSettings() {
   height: 100vh;
   background: var(--bg-primary); /* Use var */
   color: var(--text-primary);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: inherit;
   user-select: none;
 }
 
 .sidebar {
-  width: 200px;
-  background: var(--bg-secondary);
+  width: 220px;
+  background: var(--glass-bg, var(--bg-secondary));
+  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  padding: 24px 8px;
-  border-right: none;
+  padding: 24px 12px;
+  border-right: 1px solid var(--border-color);
 }
 
 .sidebar-header {
-  padding: 0 8px 24px;
+  padding: 0 12px 24px;
 }
 
 .sidebar-header h2 {
   margin: 0;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.5px;
 }
@@ -203,16 +204,17 @@ async function saveSettings() {
 }
 
 .sidebar-nav a {
-  padding: 10px 12px;
+  padding: 10px 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--text-secondary);
   font-weight: 500;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 14px;
+  position: relative;
 }
 
 .sidebar-nav a:hover {
@@ -221,9 +223,20 @@ async function saveSettings() {
 }
 
 .sidebar-nav a.active {
-  background: var(--bg-primary);
-  color: #f43f5e;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  background: var(--bg-selected);
+  color: var(--accent-color);
+}
+
+.sidebar-nav a.active::before {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 16px;
+    width: 3px;
+    background: var(--accent-color);
+    border-radius: 2px;
 }
 
 .sidebar-nav a .icon {
@@ -234,16 +247,16 @@ async function saveSettings() {
 
 .content-area {
   flex: 1;
-  padding: 24px 24px 80px 24px; /* Increased bottom padding for footer */
+  padding: 32px 40px 80px 40px;
   overflow-y: auto;
-  background: var(--bg-primary);
+  background: transparent;
   display: flex;
   flex-direction: column;
-  position: relative; /* For footer positioning */
+  position: relative; 
 }
 
 .content-header {
-    margin-bottom: 16px;
+    margin-bottom: 24px;
 }
 
 .back-btn {
@@ -253,22 +266,23 @@ async function saveSettings() {
     cursor: pointer;
     font-size: 14px;
     padding: 0;
+    transition: color 0.2s;
 }
 .back-btn:hover {
-    color: var(--text-primary);
-    text-decoration: underline;
+    color: var(--accent-color);
 }
 
 .content-card {
     padding: 0;
     flex: 1;
+    max-width: 600px;
 }
 
 /* Footer & Save Button */
 .settings-footer {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: 32px;
+    right: 32px;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -276,22 +290,22 @@ async function saveSettings() {
 }
 
 .save-btn {
-    background: #f43f5e;
+    background: var(--accent-color);
     color: white;
     border: none;
-    padding: 8px 24px;
-    border-radius: 8px;
+    padding: 10px 28px;
+    border-radius: 12px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 2px 5px rgba(244, 63, 94, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     transition: all 0.2s;
 }
 
 .save-btn:hover:not(:disabled) {
-    background: #e11d48;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(244, 63, 94, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.1);
 }
 
 .save-btn:active:not(:disabled) {
@@ -299,14 +313,15 @@ async function saveSettings() {
 }
 
 .save-btn:disabled {
-    background: #fda4af;
+    background: var(--text-muted);
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
 }
 
 .save-status {
     font-size: 13px;
-    color: #059669;
+    color: var(--accent-color);
     font-weight: 500;
     opacity: 0;
     transition: opacity 0.3s;
@@ -318,16 +333,16 @@ async function saveSettings() {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #e5e7eb;
-  border-radius: 4px;
+  background: var(--border-color);
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
+  background: var(--text-muted);
 }
 </style>

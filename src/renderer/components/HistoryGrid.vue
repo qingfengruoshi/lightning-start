@@ -153,7 +153,7 @@ defineExpose({
 
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 cols for 800px width typically */
+  grid-template-columns: repeat(8, 1fr); /* Increased to 8 cols for tighter packing */
   column-gap: var(--grid-gap, 12px);
   row-gap: 12px;
 }
@@ -164,14 +164,24 @@ defineExpose({
   align-items: center;
   justify-content: flex-start; /* Align top so icons align */
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 12px; /* Softer rounded corners */
   cursor: pointer;
-  transition: background-color 0.2s;
-  height: 108px; /* Increased from 90px */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 108px;
+  border: 1px solid transparent; /* Prepare for border transition */
 }
 
 .grid-item:hover, .grid-item.selected {
-  background-color: var(--bg-secondary);
+  background-color: var(--bg-hover);
+  transform: translateY(-2px);
+  border-color: var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode specific hover adjustment if needed, but var usage handles most */
+[data-theme='dark'] .grid-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .item-icon {

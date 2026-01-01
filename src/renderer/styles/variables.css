@@ -18,30 +18,40 @@
 
 /* Dark Mode Variables - Applied via System Preference OR Explicit Setting */
 [data-theme='dark'] {
-  --bg-primary: rgba(30, 30, 30, 0.95);
-  --bg-secondary: rgba(40, 40, 40, 0.95);
-  --bg-hover: rgba(255, 255, 255, 0.05);
-  --bg-selected: rgba(64, 150, 255, 0.2);
+  --bg-primary: rgba(10, 14, 39, 0.95);
+  /* Midnight Blue / Deep Black */
+  --bg-secondary: rgba(18, 22, 45, 0.95);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-selected: rgba(64, 150, 255, 0.25);
   --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --text-muted: #888888;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --accent-color: #1890ff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: rgba(255, 255, 255, 0.12);
+  --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
+  --accent-color: #3b82f6;
+
+  /* Glassmorphism utilities for dark mode */
+  --glass-bg: rgba(10, 14, 39, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* 暗色主题 (System Default, unless explicitly set to light) */
-    --bg-primary: rgba(30, 30, 30, 0.95);
-    --bg-secondary: rgba(40, 40, 40, 0.95);
-    --bg-hover: rgba(255, 255, 255, 0.05);
-    --bg-selected: rgba(64, 150, 255, 0.2);
+    /* 暗色主题 (System Default) */
+    --bg-primary: rgba(10, 14, 39, 0.95);
+    --bg-secondary: rgba(18, 22, 45, 0.95);
+    --bg-hover: rgba(255, 255, 255, 0.08);
+    --bg-selected: rgba(64, 150, 255, 0.25);
     --text-primary: #ffffff;
-    --text-secondary: #cccccc;
-    --text-muted: #888888;
-    --border-color: rgba(255, 255, 255, 0.1);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    --accent-color: #1890ff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.12);
+    --shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.7);
+    --accent-color: #3b82f6;
+
+    --glass-bg: rgba(10, 14, 39, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   }
 }
